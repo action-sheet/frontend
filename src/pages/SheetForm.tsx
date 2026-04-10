@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, message, Modal, Input, Tag, Tooltip } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, EyeOutlined, SendOutlined, ClearOutlined, PaperClipOutlined, PlusOutlined, DeleteOutlined, CloseCircleOutlined, SwapOutlined, FileOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
-import { employeesApi } from '../api/client'
+import { employeesApi, sheetsApi } from '../api/client'
 import dayjs from 'dayjs'
 
 /* ════════════════════════════════════════
@@ -369,6 +369,7 @@ export default function SheetForm() {
 
   // Attachments
   const [attachments, setAttachments] = useState<File[]>([])
+  const [legacyAttachments, setLegacyAttachments] = useState<string[]>([])
 
   // Dialogs
   const [employeeDialog, setEmployeeDialog] = useState<{ idx: number; role: string; type: 'action'|'info' } | null>(null)
@@ -420,6 +421,16 @@ export default function SheetForm() {
         }
       })
       setEmpSelections(restored)
+
+      // Load legacy attachments (stored as filenames in formData)
+      if (fd.attachments) {
+        const att = fd.attachments
+        if (Array.isArray(att)) {
+          setLegacyAttachments(att.filter((a: string) => a && a.trim()))
+        } else if (typeof att === 'string' && att.trim()) {
+          setLegacyAttachments([att.trim()])
+        }
+      }
     }
   }, [isEdit, currentSheet])
 
@@ -704,15 +715,53 @@ export default function SheetForm() {
         <div className="attachment-panel">
           <Button size="small" icon={<PaperClipOutlined />}
             onClick={() => document.getElementById('file-input')?.click()}>Add Document</Button>
-          <Button size="small" danger onClick={() => setAttachments([])}>Clear All</Button>
+          <Button size="small" danger onClick={() => { setAttachments([]); setLegacyAttachments([]) }}>Clear All</Button>
           <span className="label">
-            {attachments.length === 0 ? 'No files attached' : `${attachments.length} file(s) attached`}
+            {(attachments.length + legacyAttachments.length) === 0
+              ? 'No files attached'
+              : `${attachments.length + legacyAttachments.length} file(s) attached`}
           </span>
           <input id="file-input" type="file" multiple style={{ display: 'none' }}
             onChange={e => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
         </div>
 
-        {/* ═══ Attached Files List ═══ */}
+        {/* ═══ Legacy Attached Documents (from legacy system) ═══ */}
+        {legacyAttachments.length > 0 && (
+          <div className="attached-files-list">
+            {legacyAttachments.map((fileName, idx) => (
+              <div className="attached-file-item" key={`legacy-${idx}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileOutlined style={{ color: '#7c3aed', fontSize: 14 }} />
+                  <span style={{ fontSize: 12, fontWeight: 500 }}>{fileName}</span>
+                  <Tag color="purple" style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px' }}>Legacy</Tag>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <Tooltip title="Preview document">
+                    <Button type="text" size="small" icon={<EyeOutlined />}
+                      onClick={() => window.open(sheetsApi.fileUrl(fileName), '_blank')}
+                      style={{ fontSize: 11, color: '#7c3aed' }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Download">
+                    <a href={sheetsApi.fileUrl(fileName)} download={fileName} style={{ display: 'inline-flex' }}>
+                      <Button type="text" size="small" icon={<DownloadOutlined />}
+                        style={{ fontSize: 11, color: '#2563eb' }}
+                      />
+                    </a>
+                  </Tooltip>
+                  <Tooltip title="Remove">
+                    <Button type="text" size="small" danger icon={<CloseCircleOutlined />}
+                      onClick={() => setLegacyAttachments(prev => prev.filter((_, i) => i !== idx))}
+                      style={{ fontSize: 11 }}
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ New Attached Files List ═══ */}
         {attachments.length > 0 && (
           <div className="attached-files-list">
             {attachments.map((file, idx) => (

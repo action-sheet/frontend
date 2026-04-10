@@ -72,6 +72,12 @@ export const sheetsApi = {
     gmEmail: string;
     note: string;
   }) => api.post(`/api/sheets/${id}/override`, data),
+
+  resend: (id: string) =>
+    api.post(`/api/sheets/${id}/resend`),
+
+  fileUrl: (fileName: string) =>
+    `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
 };
 
 // ========== Auth API ==========
