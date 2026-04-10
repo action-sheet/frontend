@@ -1,0 +1,932 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Button, message, Modal, Input, Tag, Tooltip } from 'antd'
+import { ArrowLeftOutlined, SaveOutlined, EyeOutlined, SendOutlined, ClearOutlined, PaperClipOutlined, PlusOutlined, DeleteOutlined, CloseCircleOutlined, SwapOutlined, FileOutlined, DownloadOutlined } from '@ant-design/icons'
+import { useSheetsStore, useAuthStore } from '../store'
+import { employeesApi } from '../api/client'
+import dayjs from 'dayjs'
+
+/* ════════════════════════════════════════
+   TYPES
+   ════════════════════════════════════════ */
+interface Employee {
+  name: string
+  email: string
+  department: string
+  role: string
+  activeDirectory?: string
+}
+
+
+
+/* ════════════════════════════════════════
+   COPY-TO CONFIGURATION (from legacy)
+   ════════════════════════════════════════ */
+const COPY_TO_LABELS = [
+  'G.M', 'D. GM (Deputy GM)', "EX. M's (Executive Managers)", 'ACC. (Accounts)',
+  'PM / PE', 'M.C. (Mgt. Consultant)', 'L.A. (Legal Advisor)',
+  'O.M. (Operation Manager)', 'E/M  (Electro Mechanical)',
+  'PL. E (Planning Engineer)', 'Others',
+]
+
+const HEADER_NAMES = [
+  'General\nManager', 'Deputy\nGM', 'Executive\nManagers', 'Accounts',
+  'PM / PE', 'Mgt.\nConsultant', 'Legal\nAdvisor', 'Operations\nManager',
+  'Electro\nMechanical', 'Planning\nEngineer', 'Others',
+]
+
+// Categories that show employee search dialog
+const SEARCHABLE_CATEGORIES: Record<number, string> = {
+  2: 'EX.MS', 3: 'Accounts', 4: 'Project Manager',
+  7: 'Operations Manager', 9: 'Planning Engineer', 10: 'Others',
+}
+
+
+
+/* ════════════════════════════════════════
+   EMPLOYEE SELECTION DIALOG
+   ════════════════════════════════════════ */
+function EmployeeSelectionDialog({
+  title, employees, currentAction, currentInfo,
+  onApply, onClose, onAddEmployee, onDeleteEmployee,
+  searchMode = false,
+}: {
+  title: string
+  employees: Employee[]
+  currentAction: Employee[]
+  currentInfo: Employee[]
+  onApply: (action: Employee[], info: Employee[]) => void
+  onClose: () => void
+  onAddEmployee: () => void
+  onDeleteEmployee: () => void
+  searchMode?: boolean
+}) {
+  const [selections, setSelections] = useState<Map<string, { forAction: boolean; forInfo: boolean }>>(new Map())
+  const [searchText, setSearchText] = useState('')
+
+  useEffect(() => {
+    const m = new Map<string, { forAction: boolean; forInfo: boolean }>()
+    // Initialize from all known employees
+    employees.forEach(e => {
+      m.set(e.email, {
+        forAction: currentAction.some(a => a.email === e.email),
+        forInfo: currentInfo.some(a => a.email === e.email),
+      })
+    })
+    // Also ensure previously selected employees are in the map even if not in the list
+    currentAction.forEach(e => {
+      if (!m.has(e.email)) {
+        m.set(e.email, { forAction: true, forInfo: false })
+      }
+    })
+    currentInfo.forEach(e => {
+      if (!m.has(e.email)) {
+        m.set(e.email, { forAction: false, forInfo: true })
+      }
+    })
+    setSelections(m)
+  }, [employees, currentAction, currentInfo])
+
+  const toggle = (email: string, type: 'forAction' | 'forInfo') => {
+    setSelections(prev => {
+      const next = new Map(prev)
+      const cur = next.get(email) || { forAction: false, forInfo: false }
+      if (type === 'forAction') {
+        next.set(email, { forAction: !cur.forAction, forInfo: !cur.forAction ? false : cur.forInfo })
+      } else {
+        next.set(email, { forInfo: !cur.forInfo, forAction: !cur.forInfo ? false : cur.forAction })
+      }
+      return next
+    })
+  }
+
+  // Build a merged employee list: previously selected + all available employees
+  const allEmployeesMap = new Map<string, Employee>()
+  // Add previously selected first
+  currentAction.forEach(e => allEmployeesMap.set(e.email, e))
+  currentInfo.forEach(e => allEmployeesMap.set(e.email, e))
+  // Add from API list
+  employees.forEach(e => allEmployeesMap.set(e.email, e))
+  const allEmployees = Array.from(allEmployeesMap.values())
+
+  const handleApply = () => {
+    const action: Employee[] = []
+    const info: Employee[] = []
+    allEmployees.forEach(e => {
+      const s = selections.get(e.email)
+      if (s?.forAction) action.push(e)
+      if (s?.forInfo) info.push(e)
+    })
+    onApply(action, info)
+  }
+
+  // Count selected
+  const selectedCount = Array.from(selections.values()).filter(s => s.forAction || s.forInfo).length
+
+  // Get previously selected employees (to show at top)
+  const previouslySelected = allEmployees.filter(e => {
+    return currentAction.some(a => a.email === e.email) || currentInfo.some(a => a.email === e.email)
+  })
+
+  // Filter: in searchMode start empty (except selected), show results only when 2+ chars typed
+  const query = searchText.trim().toLowerCase()
+  const searchedEmployees = searchMode
+    ? (query.length >= 2
+      ? allEmployees.filter(e =>
+        (e.name?.toLowerCase().includes(query) || e.email?.toLowerCase().includes(query)) &&
+        !previouslySelected.some(p => p.email === e.email))
+      : [])
+    : (query
+      ? allEmployees.filter(e =>
+        (e.name?.toLowerCase().includes(query) || e.email?.toLowerCase().includes(query)) &&
+        !previouslySelected.some(p => p.email === e.email))
+      : allEmployees.filter(e => !previouslySelected.some(p => p.email === e.email)))
+
+  const renderEmployeeRow = (emp: Employee) => {
+    const s = selections.get(emp.email) || { forAction: false, forInfo: false }
+    return (
+      <div className="employee-row" key={emp.email}>
+        <div>
+          <div className="employee-name">{emp.name}</div>
+          <div className="employee-email">{emp.email}</div>
+        </div>
+        <div className="employee-checks">
+          <label className="action">
+            <input type="checkbox" checked={s.forAction} onChange={() => toggle(emp.email, 'forAction')} />
+            For Action
+          </label>
+          <label className="info">
+            <input type="checkbox" checked={s.forInfo} onChange={() => toggle(emp.email, 'forInfo')} />
+            Info Copy
+          </label>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="employee-dialog-overlay" onClick={onClose}>
+      <div className="employee-dialog" onClick={e => e.stopPropagation()} style={{ maxHeight: 600 }}>
+        <div className="employee-dialog-header">
+          <span>{title} ({selectedCount} selected)</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button size="small" type="primary" icon={<PlusOutlined />}
+              style={{ background: '#16a34a', borderColor: '#16a34a', fontSize: 11 }}
+              onClick={onAddEmployee}>ADD</Button>
+            <Button size="small" danger icon={<DeleteOutlined />}
+              style={{ fontSize: 11 }}
+              onClick={onDeleteEmployee}>DELETE</Button>
+          </div>
+        </div>
+
+        {/* Previously selected section */}
+        {previouslySelected.length > 0 && (
+          <div style={{ borderBottom: '2px solid #2563eb' }}>
+            <div style={{ padding: '6px 12px', background: '#eff6ff', fontSize: 11, fontWeight: 700, color: '#2563eb' }}>
+              ✓ Currently Selected ({previouslySelected.length})
+            </div>
+            <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+              {previouslySelected.map(renderEmployeeRow)}
+            </div>
+          </div>
+        )}
+
+        {/* Search bar */}
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e5e5' }}>
+          <Input
+            placeholder={searchMode ? "Type to search employees..." : "Filter employees..."}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            allowClear
+            autoFocus
+            style={{ borderRadius: 6 }}
+          />
+        </div>
+        <div className="employee-dialog-body">
+          {searchMode && query.length < 2 && previouslySelected.length === 0 ? (
+            <div style={{ padding: 30, textAlign: 'center', color: '#888', fontStyle: 'italic' }}>
+              🔍 Type at least 2 characters to search employees
+            </div>
+          ) : searchedEmployees.length === 0 && previouslySelected.length === 0 ? (
+            <div style={{ padding: 30, textAlign: 'center', color: '#888', fontStyle: 'italic' }}>
+              {query ? `No employees matching "${searchText}"` : 'No employees stored yet. Click ADD to add employees.'}
+            </div>
+          ) : searchMode && query.length < 2 ? (
+            <div style={{ padding: 20, textAlign: 'center', color: '#888', fontStyle: 'italic', fontSize: 12 }}>
+              🔍 Type at least 2 characters to search for more employees
+            </div>
+          ) : searchedEmployees.map(renderEmployeeRow)}
+        </div>
+        <div className="employee-dialog-footer">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" onClick={handleApply}>Apply</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════
+   ADD EMPLOYEE DIALOG
+   ════════════════════════════════════════ */
+function AddEmployeeDialog({ role, onClose, onAdded }: { role: string; onClose: () => void; onAdded: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [dept, setDept] = useState('')
+  const [ad, setAd] = useState('')
+
+  const handleSave = async () => {
+    if (!name.trim() || !email.trim()) { message.error('Name and Email are required.'); return }
+    try {
+      // POST to backend — create employee
+      await employeesApi.create({ name, email, department: dept || 'General', role, activeDirectory: ad })
+      message.success('Employee added')
+      onAdded()
+      onClose()
+    } catch {
+      message.error('Failed to add employee')
+    }
+  }
+
+  return (
+    <div className="employee-dialog-overlay" onClick={onClose}>
+      <div className="employee-dialog" style={{ maxHeight: 360 }} onClick={e => e.stopPropagation()}>
+        <div className="employee-dialog-header" style={{ background: '#16a34a' }}>
+          <span>Add Employee — {role}</span>
+        </div>
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div><label style={{ fontSize: 12, fontWeight: 600 }}>Name *</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+          <div><label style={{ fontSize: 12, fontWeight: 600 }}>Email *</label><Input value={email} onChange={e => setEmail(e.target.value)} /></div>
+          <div><label style={{ fontSize: 12, fontWeight: 600 }}>Department</label><Input value={dept} onChange={e => setDept(e.target.value)} /></div>
+          <div><label style={{ fontSize: 12, fontWeight: 600 }}>Active Directory</label><Input value={ad} onChange={e => setAd(e.target.value)} /></div>
+        </div>
+        <div className="employee-dialog-footer">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" onClick={handleSave} style={{ background: '#16a34a', borderColor: '#16a34a' }}>Save</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════
+   SELECTED RECIPIENTS LIST
+   ════════════════════════════════════════ */
+function SelectedRecipientsList({
+  empSelections,
+  onRemove,
+  onToggleRole,
+}: {
+  empSelections: Record<string, { action: Employee[]; info: Employee[] }>
+  onRemove: (role: string, email: string) => void
+  onToggleRole: (role: string, email: string, currentType: 'action' | 'info') => void
+}) {
+  const allEntries: { role: string; emp: Employee; type: 'action' | 'info' }[] = []
+  Object.entries(empSelections).forEach(([role, sel]) => {
+    sel.action.forEach(e => allEntries.push({ role, emp: e, type: 'action' }))
+    sel.info.forEach(e => allEntries.push({ role, emp: e, type: 'info' }))
+  })
+
+  if (allEntries.length === 0) return null
+
+  return (
+    <div className="selected-recipients-section">
+      <div className="selected-recipients-header">
+        <span>📋 Selected Recipients ({allEntries.length})</span>
+      </div>
+      <div className="selected-recipients-list">
+        {allEntries.map(({ role, emp, type }) => (
+          <div className="selected-recipient-chip" key={`${role}-${emp.email}-${type}`}>
+            <div className="selected-recipient-info">
+              <span className="selected-recipient-name">{emp.name}</span>
+              <span className="selected-recipient-role-label">{role}</span>
+            </div>
+            <div className="selected-recipient-actions">
+              <Tag color={type === 'action' ? 'red' : 'blue'} style={{ margin: 0, fontSize: 10 }}>
+                {type === 'action' ? '⚡ For Action' : 'ℹ️ For Info'}
+              </Tag>
+              <Tooltip title={`Switch to ${type === 'action' ? 'Info' : 'Action'}`}>
+                <Button
+                  type="text" size="small"
+                  icon={<SwapOutlined />}
+                  onClick={() => onToggleRole(role, emp.email, type)}
+                  style={{ fontSize: 11, color: '#666' }}
+                />
+              </Tooltip>
+              <Tooltip title="Remove">
+                <Button
+                  type="text" size="small" danger
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => onRemove(role, emp.email)}
+                  style={{ fontSize: 11 }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ════════════════════════════════════════
+   MAIN FORM
+   ════════════════════════════════════════ */
+export default function SheetForm() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { } = useAuthStore()
+  const { currentSheet, fetchSheet, createSheet, updateSheet } = useSheetsStore()
+  const isEdit = !!id
+  const projectFromUrl = searchParams.get('project') || ''
+
+  // ── Form Fields (matching legacy exactly) ──
+  const [originalTo, setOriginalTo] = useState('')
+  const [dateReceived, setDateReceived] = useState(dayjs().format('DD/MM/YYYY'))
+  const [refNo, setRefNo] = useState('')
+  const [documentDate, setDocumentDate] = useState(dayjs().format('DD/MM/YYYY'))
+  const [from, setFrom] = useState('')
+  const [subject, setSubject] = useState('')
+  const [response, setResponse] = useState('')
+  const [createdBy, setCreatedBy] = useState('Ex.Sec')
+
+  // Document type checkboxes
+  const [isLetter, setIsLetter] = useState(false)
+  const [isFax, setIsFax] = useState(false)
+  const [isCopy, setIsCopy] = useState(false)
+  const [isEmail, setIsEmail] = useState(true)
+
+  // Informational Only
+  const [informationalOnly, setInformationalOnly] = useState(false)
+
+  // Copy-to checkboxes (11 columns × 2 rows)
+  const [forAction, setForAction] = useState<boolean[]>(new Array(11).fill(false))
+  const [sendCopy, setSendCopy] = useState<boolean[]>(new Array(11).fill(false))
+
+  // Employee selections per category
+  const [empSelections, setEmpSelections] = useState<Record<string, { action: Employee[]; info: Employee[] }>>({})
+
+  // Attachments
+  const [attachments, setAttachments] = useState<File[]>([])
+
+  // Dialogs
+  const [employeeDialog, setEmployeeDialog] = useState<{ idx: number; role: string; type: 'action'|'info' } | null>(null)
+  const [addEmployeeDialog, setAddEmployeeDialog] = useState<string | null>(null)
+  const [categoryEmployees, setCategoryEmployees] = useState<Employee[]>([])
+
+  // Load existing sheet
+  useEffect(() => {
+    if (id) fetchSheet(id)
+  }, [id, fetchSheet])
+
+  useEffect(() => {
+    if (isEdit && currentSheet) {
+      const fd = currentSheet.formData || {}
+      setOriginalTo(fd.originalTo || '')
+      setDateReceived(fd.dateReceived || dayjs().format('DD/MM/YYYY'))
+      setRefNo(fd.refNo || '')
+      setDocumentDate(fd.documentDate || dayjs().format('DD/MM/YYYY'))
+      setFrom(fd.from || '')
+      setSubject(fd.subject || currentSheet.title || '')
+      setResponse(fd.response || '')
+      setCreatedBy(fd.createdBy || 'Ex.Sec')
+      setIsLetter(!!fd.isLetter)
+      setIsFax(!!fd.isFax)
+      setIsCopy(!!fd.isCopy)
+      setIsEmail(fd.isEmail !== false)
+      setInformationalOnly(!!fd.informationalOnly)
+      // Load checkboxes
+      const fa = new Array(11).fill(false)
+      const sc = new Array(11).fill(false)
+      for (let i = 0; i < 11; i++) {
+        if (fd[`forAction_${i}`]) fa[i] = true
+        if (fd[`sendCopy_${i}`]) sc[i] = true
+      }
+      setForAction(fa)
+      setSendCopy(sc)
+
+      // Restore employee selections from formData
+      const restored: Record<string, { action: Employee[]; info: Employee[] }> = {}
+      Object.keys(SEARCHABLE_CATEGORIES).forEach(idxStr => {
+        const role = SEARCHABLE_CATEGORIES[Number(idxStr)]
+        const actionKey = `selected_${role}_action`
+        const infoKey = `selected_${role}_info`
+        if (fd[actionKey] || fd[infoKey]) {
+          restored[role] = {
+            action: Array.isArray(fd[actionKey]) ? fd[actionKey] : [],
+            info: Array.isArray(fd[infoKey]) ? fd[infoKey] : [],
+          }
+        }
+      })
+      setEmpSelections(restored)
+    }
+  }, [isEdit, currentSheet])
+
+  // Fetch employees for a category
+  const loadCategoryEmployees = useCallback(async (role: string) => {
+    try {
+      const res = await employeesApi.getAll()
+      const all: Employee[] = res.data
+      // For 'Others', show ALL employees (like legacy AD search dialog)
+      const filtered = role === 'Others' ? all : all.filter((e: Employee) => e.role === role)
+      setCategoryEmployees(filtered)
+    } catch {
+      setCategoryEmployees([])
+    }
+  }, [])
+
+  // Handle checkbox click
+  const handleCheckboxClick = (idx: number, row: 'action' | 'info') => {
+    if (informationalOnly && row === 'action') return
+
+    const role = SEARCHABLE_CATEGORIES[idx]
+    if (role) {
+      // Open employee dialog
+      loadCategoryEmployees(role)
+      setEmployeeDialog({ idx, role, type: row })
+    } else {
+      // Direct toggle
+      if (row === 'action') {
+        const next = [...forAction]; next[idx] = !next[idx]; setForAction(next)
+      } else {
+        const next = [...sendCopy]; next[idx] = !next[idx]; setSendCopy(next)
+      }
+    }
+  }
+
+  // Employee dialog apply
+  const handleEmployeeDialogApply = (action: Employee[], info: Employee[]) => {
+    if (!employeeDialog) return
+    const { idx, role } = employeeDialog
+    setEmpSelections(prev => ({ ...prev, [role]: { action, info } }))
+    const fa = [...forAction]; fa[idx] = action.length > 0; setForAction(fa)
+    const sc = [...sendCopy]; sc[idx] = info.length > 0; setSendCopy(sc)
+    setEmployeeDialog(null)
+  }
+
+  // Remove a selected recipient
+  const handleRemoveRecipient = (role: string, email: string) => {
+    setEmpSelections(prev => {
+      const sel = prev[role]
+      if (!sel) return prev
+      const newAction = sel.action.filter(e => e.email !== email)
+      const newInfo = sel.info.filter(e => e.email !== email)
+      const updated = { ...prev, [role]: { action: newAction, info: newInfo } }
+      // Update checkbox states
+      const catIdx = Object.entries(SEARCHABLE_CATEGORIES).find(([, r]) => r === role)?.[0]
+      if (catIdx !== undefined) {
+        const idx = Number(catIdx)
+        const fa = [...forAction]; fa[idx] = newAction.length > 0; setForAction(fa)
+        const sc = [...sendCopy]; sc[idx] = newInfo.length > 0; setSendCopy(sc)
+      }
+      return updated
+    })
+  }
+
+  // Toggle between action and info
+  const handleToggleRecipientRole = (role: string, email: string, currentType: 'action' | 'info') => {
+    setEmpSelections(prev => {
+      const sel = prev[role]
+      if (!sel) return prev
+      const emp = currentType === 'action'
+        ? sel.action.find(e => e.email === email)
+        : sel.info.find(e => e.email === email)
+      if (!emp) return prev
+
+      let newAction = [...sel.action]
+      let newInfo = [...sel.info]
+      if (currentType === 'action') {
+        newAction = newAction.filter(e => e.email !== email)
+        newInfo = [...newInfo, emp]
+      } else {
+        newInfo = newInfo.filter(e => e.email !== email)
+        newAction = [...newAction, emp]
+      }
+      const updated = { ...prev, [role]: { action: newAction, info: newInfo } }
+      const catIdx = Object.entries(SEARCHABLE_CATEGORIES).find(([, r]) => r === role)?.[0]
+      if (catIdx !== undefined) {
+        const idx = Number(catIdx)
+        const fa = [...forAction]; fa[idx] = newAction.length > 0; setForAction(fa)
+        const sc = [...sendCopy]; sc[idx] = newInfo.length > 0; setSendCopy(sc)
+      }
+      return updated
+    })
+  }
+
+  // Build form data map
+  const getFormData = () => {
+    const fd: Record<string, any> = {
+      originalTo, dateReceived, refNo, documentDate, from, subject, response, createdBy,
+      isLetter, isFax, isCopy, isEmail, informationalOnly,
+    }
+    forAction.forEach((v, i) => { fd[`forAction_${i}`] = v })
+    sendCopy.forEach((v, i) => { fd[`sendCopy_${i}`] = v })
+    // Employee selections
+    Object.entries(empSelections).forEach(([role, sel]) => {
+      fd[`selected_${role}_action`] = sel.action
+      fd[`selected_${role}_info`] = sel.info
+    })
+    return fd
+  }
+
+  // Build assignedTo map (email → name) and recipientTypes (email → ACTION/INFO)
+  // from the empSelections state — this is what the backend uses for email sending
+  const buildRecipientMaps = () => {
+    const assignedTo: Record<string, string> = {}
+    const recipientTypes: Record<string, string> = {}
+    Object.values(empSelections).forEach(sel => {
+      sel.action.forEach(e => {
+        assignedTo[e.email] = e.name
+        recipientTypes[e.email] = 'ACTION'
+      })
+      sel.info.forEach(e => {
+        assignedTo[e.email] = e.name
+        recipientTypes[e.email] = 'INFO'
+      })
+    })
+    return { assignedTo, recipientTypes }
+  }
+
+  // ── Actions ──
+  const handleSaveDraft = async () => {
+    try {
+      const { assignedTo, recipientTypes } = buildRecipientMaps()
+      if (isEdit && id) {
+        await updateSheet(id, { title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+      } else {
+        await createSheet({ title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+      }
+      message.success('Draft saved!')
+    } catch { message.error('Failed to save draft') }
+  }
+
+  const handleSend = async () => {
+    if (!subject.trim()) { message.warning('Please enter a subject'); return }
+    const { assignedTo, recipientTypes } = buildRecipientMaps()
+    if (Object.keys(assignedTo).length === 0) {
+      message.warning('Please select at least one recipient before sending')
+      return
+    }
+    try {
+      if (isEdit && id) {
+        await updateSheet(id, { title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+      } else {
+        await createSheet({ title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+      }
+      message.success('Action Sheet sent!')
+      navigate('/')
+    } catch { message.error('Failed to send') }
+  }
+
+  const handleClear = () => {
+    Modal.confirm({
+      title: 'Clear Form?',
+      content: 'All entered data will be lost.',
+      okText: 'Clear', okType: 'danger',
+      onOk: () => {
+        setOriginalTo(''); setDateReceived(dayjs().format('DD/MM/YYYY')); setRefNo('')
+        setDocumentDate(dayjs().format('DD/MM/YYYY')); setFrom(''); setSubject('')
+        setResponse(''); setCreatedBy('Ex.Sec')
+        setIsLetter(false); setIsFax(false); setIsCopy(false); setIsEmail(true)
+        setInformationalOnly(false)
+        setForAction(new Array(11).fill(false)); setSendCopy(new Array(11).fill(false))
+        setEmpSelections({}); setAttachments([])
+      },
+    })
+  }
+
+  const handleRemoveAttachment = (idx: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  return (
+    <div className="page-container fade-in" style={{ paddingTop: 16 }}>
+      {/* Nav */}
+      <div style={{ marginBottom: 16 }}>
+        <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}
+          style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+          ← Dashboard
+        </Button>
+      </div>
+
+      <div className="sheet-form">
+        {/* ═══ ROW 1: Company Header ═══ */}
+        <div className="sheet-header">
+          <span className="sheet-header-company">AL-AHLIA CONTRACTING GROUP</span>
+          <img src="/acg_logo.jpg" alt="ACG" className="sheet-header-logo" />
+          <span className="sheet-header-arabic">المجموعة الاهلية للمقاولات</span>
+        </div>
+
+        {/* ═══ ROW 2: Title Bar ═══ */}
+        <div className="sheet-title-bar">
+          <span className="sheet-title-label">ACTION SHEET</span>
+        </div>
+
+        {/* ═══ ROW 3: Document Type ═══ */}
+        <div className="doc-type-row">
+          {[
+            { label: 'LETTER', val: isLetter, set: setIsLetter },
+            { label: 'FAX', val: isFax, set: setIsFax },
+            { label: 'COPY', val: isCopy, set: setIsCopy },
+            { label: 'E.MAIL', val: isEmail, set: setIsEmail },
+          ].map(dt => (
+            <div className="doc-type-cell" key={dt.label}>
+              <label>{dt.label}</label>
+              <input type="checkbox" checked={dt.val} onChange={() => dt.set(!dt.val)}
+                style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ Document Info ═══ */}
+        {/* Row: Original To | Date Received */}
+        <div className="bi-field-row">
+          <div className="bi-field">
+            <span className="bi-field-label">Original To:</span>
+            <input value={originalTo} onChange={e => setOriginalTo(e.target.value)} />
+            <span className="bi-field-label-ar">:الأصل إلى</span>
+          </div>
+          <div className="bi-field">
+            <span className="bi-field-label">Date Received:</span>
+            <input value={dateReceived} onChange={e => setDateReceived(e.target.value)} />
+            <span className="bi-field-label-ar">:تاريخ الاستلام</span>
+          </div>
+        </div>
+
+        {/* Row: Ref. No. | Document Date */}
+        <div className="bi-field-row">
+          <div className="bi-field">
+            <span className="bi-field-label">Ref. No.:</span>
+            <input value={refNo} onChange={e => setRefNo(e.target.value)} />
+            <span className="bi-field-label-ar">:رقم الكتاب</span>
+          </div>
+          <div className="bi-field">
+            <span className="bi-field-label">Document Date:</span>
+            <input value={documentDate} onChange={e => setDocumentDate(e.target.value)} />
+            <span className="bi-field-label-ar">:تاريخ الكتاب</span>
+          </div>
+        </div>
+
+        <div style={{ height: 10 }} />
+
+        {/* Row: From (full width) */}
+        <div className="bi-field-row full">
+          <div className="bi-field">
+            <span className="bi-field-label">From:</span>
+            <input value={from} onChange={e => setFrom(e.target.value)} />
+            <span className="bi-field-label-ar">:من</span>
+          </div>
+        </div>
+
+        {/* Row: Subject (full width) */}
+        <div className="bi-field-row full">
+          <div className="bi-field">
+            <span className="bi-field-label">Subject:</span>
+            <input value={subject} onChange={e => setSubject(e.target.value)} />
+            <span className="bi-field-label-ar">:الموضوع</span>
+          </div>
+        </div>
+
+        {/* Created By */}
+        <div className="created-by-row">
+          <label>Created By:</label>
+          {['Ex.Sec', 'GM'].map(name => (
+            <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>
+              <input type="radio" name="createdBy" checked={createdBy === name}
+                onChange={() => setCreatedBy(name)} style={{ accentColor: 'var(--accent)' }} />
+              {name}
+            </label>
+          ))}
+        </div>
+
+        {/* ═══ Attachments ═══ */}
+        <div className="attachment-panel">
+          <Button size="small" icon={<PaperClipOutlined />}
+            onClick={() => document.getElementById('file-input')?.click()}>Add Document</Button>
+          <Button size="small" danger onClick={() => setAttachments([])}>Clear All</Button>
+          <span className="label">
+            {attachments.length === 0 ? 'No files attached' : `${attachments.length} file(s) attached`}
+          </span>
+          <input id="file-input" type="file" multiple style={{ display: 'none' }}
+            onChange={e => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
+        </div>
+
+        {/* ═══ Attached Files List ═══ */}
+        {attachments.length > 0 && (
+          <div className="attached-files-list">
+            {attachments.map((file, idx) => (
+              <div className="attached-file-item" key={`${file.name}-${idx}`}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileOutlined style={{ color: '#2563eb', fontSize: 14 }} />
+                  <span style={{ fontSize: 12, fontWeight: 500 }}>{file.name}</span>
+                  <span style={{ fontSize: 10, color: '#888' }}>
+                    ({(file.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <Tooltip title="View file">
+                    <Button type="text" size="small" icon={<EyeOutlined />}
+                      onClick={() => {
+                        const url = URL.createObjectURL(file)
+                        window.open(url, '_blank')
+                      }}
+                      style={{ fontSize: 11, color: '#2563eb' }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Remove">
+                    <Button type="text" size="small" danger icon={<CloseCircleOutlined />}
+                      onClick={() => handleRemoveAttachment(idx)}
+                      style={{ fontSize: 11 }}
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ Existing PDF/Attachment View (for edit mode) ═══ */}
+        {isEdit && currentSheet?.pdfPath && (
+          <div className="attached-files-list" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="attached-file-item">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FileOutlined style={{ color: '#800000', fontSize: 14 }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#800000' }}>
+                  Generated PDF
+                </span>
+                <span style={{ fontSize: 10, color: '#888' }}>
+                  {currentSheet.pdfPath.split('/').pop() || currentSheet.pdfPath.split('\\').pop()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <Tooltip title="Open PDF">
+                  <Button type="primary" size="small" icon={<EyeOutlined />}
+                    onClick={() => {
+                      const url = `/api/projects/serve-file?path=${encodeURIComponent(currentSheet.pdfPath!)}`
+                      window.open(url, '_blank')
+                    }}
+                    style={{ fontSize: 11, background: '#800000', borderColor: '#800000' }}
+                  >
+                    View
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Download PDF">
+                  <Button size="small" icon={<DownloadOutlined />}
+                    onClick={() => {
+                      const url = `/api/projects/serve-file?path=${encodeURIComponent(currentSheet.pdfPath!)}`
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = currentSheet.pdfPath!.split('/').pop() || 'ActionSheet.pdf'
+                      a.click()
+                    }}
+                    style={{ fontSize: 11 }}
+                  >
+                    Download
+                  </Button>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Copy To Grid ═══ */}
+        <div className="copy-to-section" style={{ marginTop: 16 }}>
+          <div className="copy-to-header">
+            <span>Copy to:</span>
+            <span style={{ direction: 'rtl' }}>:صورة إلى</span>
+          </div>
+
+          {/* Informational Only toggle */}
+          <div style={{ padding: '6px 12px', background: '#fefaf5', borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={informationalOnly}
+              onChange={() => {
+                setInformationalOnly(!informationalOnly)
+                if (!informationalOnly) setForAction(new Array(11).fill(false))
+              }}
+              style={{ accentColor: 'var(--warning)' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--warning)' }}>
+              ⚠ INFORMATIONAL ONLY — disable all "For Action"
+            </span>
+          </div>
+
+          <div className="copy-to-grid">
+            {/* Header row */}
+            <div className="header-cell" style={{ background: 'transparent' }} />
+            {HEADER_NAMES.map((name, i) => (
+              <div className="header-cell" key={i}>
+                {name.split('\n').map((line, j) => <div key={j}>{line}</div>)}
+                {/* Show chip count if employees selected */}
+                {empSelections[SEARCHABLE_CATEGORIES[i]]?.action.length > 0 && (
+                  <span style={{ fontSize: 8, background: 'var(--danger-muted)', color: 'var(--danger)',
+                    padding: '0 4px', borderRadius: 3, marginTop: 2 }}>
+                    {empSelections[SEARCHABLE_CATEGORIES[i]].action.length}A
+                  </span>
+                )}
+                {empSelections[SEARCHABLE_CATEGORIES[i]]?.info.length > 0 && (
+                  <span style={{ fontSize: 8, background: 'var(--info-muted)', color: 'var(--info)',
+                    padding: '0 4px', borderRadius: 3, marginTop: 1 }}>
+                    {empSelections[SEARCHABLE_CATEGORIES[i]].info.length}I
+                  </span>
+                )}
+              </div>
+            ))}
+
+            {/* For Action row */}
+            <div className="row-label">
+              <span>For Action:</span>
+              <span className="arabic">الإجراء اللازم</span>
+            </div>
+            {forAction.map((checked, i) => (
+              <div className="check-cell" key={`action-${i}`}
+                style={{ opacity: informationalOnly ? 0.4 : 1 }}>
+                <input type="checkbox" checked={checked}
+                  disabled={informationalOnly}
+                  onChange={() => handleCheckboxClick(i, 'action')} />
+              </div>
+            ))}
+
+            {/* For Information row */}
+            <div className="row-label">
+              <span>For Information:</span>
+              <span className="arabic">للعلم</span>
+            </div>
+            {sendCopy.map((checked, i) => (
+              <div className="check-cell" key={`info-${i}`}>
+                <input type="checkbox" checked={checked}
+                  onChange={() => handleCheckboxClick(i, 'info')} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ═══ Selected Recipients Display ═══ */}
+        <SelectedRecipientsList
+          empSelections={empSelections}
+          onRemove={handleRemoveRecipient}
+          onToggleRole={handleToggleRecipientRole}
+        />
+
+        {/* ═══ Response Section ═══ */}
+        <div className="response-section" style={{ marginTop: 16 }}>
+          <div className="response-header">
+            <span>Response:</span>
+            <span style={{ direction: 'rtl' }}>:الرد</span>
+          </div>
+          <textarea
+            value={response}
+            onChange={e => setResponse(e.target.value)}
+            placeholder="Enter response..."
+          />
+        </div>
+
+        {/* ═══ Action Bar (bottom) ═══ */}
+        <div className="form-action-bar">
+          <Button icon={<SaveOutlined />} onClick={handleSaveDraft}
+            style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white', fontWeight: 600 }}>
+            Save as Draft
+          </Button>
+          <Button icon={<EyeOutlined />}
+            style={{ background: '#3b82f6', borderColor: '#3b82f6', color: 'white', fontWeight: 600 }}>
+            Preview
+          </Button>
+          <Button type="primary" icon={<SendOutlined />} onClick={handleSend}
+            style={{ background: '#800000', borderColor: '#800000', fontWeight: 600 }}>
+            Send
+          </Button>
+          <Button icon={<ClearOutlined />} onClick={handleClear}
+            style={{ background: '#94a3b8', borderColor: '#94a3b8', color: 'white', fontWeight: 600 }}>
+            Clear Form
+          </Button>
+        </div>
+      </div>
+
+      {/* ═══ Employee Dialog ═══ */}
+      {employeeDialog && (
+        <EmployeeSelectionDialog
+          title={`Select ${COPY_TO_LABELS[employeeDialog.idx]}`}
+          employees={categoryEmployees}
+          currentAction={empSelections[employeeDialog.role]?.action || []}
+          currentInfo={empSelections[employeeDialog.role]?.info || []}
+          onApply={handleEmployeeDialogApply}
+          onClose={() => setEmployeeDialog(null)}
+          onAddEmployee={() => setAddEmployeeDialog(employeeDialog.role)}
+          onDeleteEmployee={() => message.info('Delete employees from Settings > Employees')}
+          searchMode={employeeDialog.role === 'Others'}
+        />
+      )}
+
+      {/* ═══ Add Employee Dialog ═══ */}
+      {addEmployeeDialog && (
+        <AddEmployeeDialog
+          role={addEmployeeDialog}
+          onClose={() => setAddEmployeeDialog(null)}
+          onAdded={() => {
+            if (employeeDialog) loadCategoryEmployees(employeeDialog.role)
+          }}
+        />
+      )}
+    </div>
+  )
+}
