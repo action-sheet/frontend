@@ -739,9 +739,14 @@ export default function SheetForm() {
           <div className="attached-files-list">
             {legacyAttachments.map((fileName, idx) => (
               <div className="attached-file-item" key={`legacy-${idx}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FileOutlined style={{ color: '#7c3aed', fontSize: 14 }} />
-                  <span style={{ fontSize: 12, fontWeight: 500 }}>{fileName}</span>
+                  <a href={sheetsApi.fileUrl(fileName)} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, fontWeight: 500, color: '#7c3aed', textDecoration: 'none', cursor: 'pointer' }}
+                    onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+                    onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}>
+                    {fileName}
+                  </a>
                   <Tag color="purple" style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px' }}>Legacy</Tag>
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -777,7 +782,12 @@ export default function SheetForm() {
               <div className="attached-file-item" key={`${file.name}-${idx}`}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FileOutlined style={{ color: '#2563eb', fontSize: 14 }} />
-                  <span style={{ fontSize: 12, fontWeight: 500 }}>{file.name}</span>
+                  <a href="#" onClick={(e) => { e.preventDefault(); window.open(URL.createObjectURL(file), '_blank') }}
+                    style={{ fontSize: 12, fontWeight: 500, color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}
+                    onMouseOver={ev => (ev.currentTarget.style.textDecoration = 'underline')}
+                    onMouseOut={ev => (ev.currentTarget.style.textDecoration = 'none')}>
+                    {file.name}
+                  </a>
                   <span style={{ fontSize: 10, color: '#888' }}>
                     ({(file.size / 1024).toFixed(1)} KB)
                   </span>

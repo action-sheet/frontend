@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, message } from 'antd'
-import { MailOutlined, ArrowRightOutlined, LockOutlined } from '@ant-design/icons'
+import { MailOutlined, ArrowRightOutlined, LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 
 export default function Login() {
@@ -74,13 +74,12 @@ export default function Login() {
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
+              { required: true, message: 'Please enter your email or username' },
             ]}
           >
             <Input
-              prefix={<MailOutlined style={{ color: '#aaa' }} />}
-              placeholder="Enter your email address"
+              prefix={<UserOutlined style={{ color: '#aaa' }} />}
+              placeholder="Email or Username"
               style={{
                 height: 48,
                 fontSize: '0.95rem',
