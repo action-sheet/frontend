@@ -240,7 +240,7 @@ export default function Dashboard() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (r.pdfPath) {
-                    const url = `/api/projects/serve-file?path=${encodeURIComponent(r.pdfPath)}`
+                    const url = projectsApi.serveFileUrl(r.pdfPath)
                     window.open(url, '_blank')
                   } else {
                     navigate(`/sheet/${r.id}`)
@@ -256,7 +256,7 @@ export default function Dashboard() {
                   style={{ fontWeight: 600, fontSize: '0.75rem' }}
                   onClick={(e) => {
                     e.stopPropagation()
-                    const url = `/api/projects/serve-file?path=${encodeURIComponent(r.pdfPath!)}`
+                    const url = projectsApi.serveFileUrl(r.pdfPath!)
                     window.open(url, '_blank')
                   }}
                 />
@@ -265,7 +265,7 @@ export default function Dashboard() {
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
               { key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) },
-              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(`/api/projects/serve-file?path=${encodeURIComponent(r.pdfPath!)}`, '_blank') }] : []),
+              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(projectsApi.serveFileUrl(r.pdfPath!), '_blank') }] : []),
               { type:'divider' as const },
               { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) },
             ]}} trigger={['click']}>
@@ -370,7 +370,7 @@ export default function Dashboard() {
                   navigate(`/sheet/${r.id}/edit`)
                 } else if (r.pdfPath) {
                   // Open PDF in new tab
-                  window.open(`/api/projects/serve-file?path=${encodeURIComponent(r.pdfPath)}`, '_blank')
+                  window.open(projectsApi.serveFileUrl(r.pdfPath), '_blank')
                 } else {
                   navigate(`/sheet/${r.id}`)
                 }
