@@ -80,11 +80,14 @@ export default function Dashboard() {
   const [, setSearchTerm] = useState('')
   const [initialLoad, setInitialLoad] = useState(true)
 
-  // Projects state for "New Sheet" project selection
   const [projects, setProjects] = useState<Project[]>([])
   const [projectSelectModal, setProjectSelectModal] = useState(false)
   const [newProjectModal, setNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+
+  // Print state
+  const [printModal, setPrintModal] = useState(false)
+  const [printSelectedKeys, setPrintSelectedKeys] = useState<React.Key[]>([])
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -304,7 +307,7 @@ export default function Dashboard() {
               <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
               <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
               <Button icon={<DownloadOutlined />} onClick={() => message.info('Backup Data coming soon...')}>Backup Data</Button>
-              <Button icon={<PrinterOutlined />} onClick={() => message.info('Print functionality coming soon...')}>Print</Button>
+              <Button icon={<PrinterOutlined />} onClick={() => setPrintModal(true)}>Print</Button>
             </div>
           </div>
 
@@ -465,6 +468,42 @@ export default function Dashboard() {
             autoFocus
           />
         </div>
+      </Modal>
+
+      {/* ── Print Modal ── */}
+      <Modal
+        title={<><PrinterOutlined /> Print Action Sheets</>}
+        open={printModal}
+        onCancel={() => { setPrintModal(false); setPrintSelectedKeys([]) }}
+        width={800}
+        okText={`Print ${printSelectedKeys.length} Sheet(s)`}
+        okButtonProps={{ disabled: printSelectedKeys.length === 0, icon: <PrinterOutlined /> }}
+        onOk={() => {
+          if (printSelectedKeys.length === 0) return
+          window.open(`/print?ids=${printSelectedKeys.join(',')}`, '_blank')
+          setPrintModal(false)
+          setPrintSelectedKeys([])
+        }}
+      >
+        <div style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
+          Select the active or completed action sheets you wish to print. They will be opened in a new tab formatted for printing.
+        </div>
+        <Table
+          rowSelection={{
+            selectedRowKeys: printSelectedKeys,
+            onChange: (keys) => setPrintSelectedKeys(keys),
+          }}
+          columns={[
+            { title: 'Ref No', key: 'refNo', width: 140, render: (_, r: any) => r.formData?.refNo || '—' },
+            { title: 'Action Sheet', dataIndex: 'title', key: 'title', ellipsis: true },
+            { title: 'Status', dataIndex: 'status', key: 'status', width: 160 },
+          ]}
+          dataSource={sheets.filter(s => s.workflowState !== 'DRAFT')}
+          rowKey="id"
+          size="small"
+          scroll={{ y: 400 }}
+          pagination={false}
+        />
       </Modal>
     </div>
   )

@@ -9,6 +9,7 @@ import SheetDetail from './pages/SheetDetail'
 import SheetForm from './pages/SheetForm'
 import Employees from './pages/Employees'
 import Repository from './pages/Repository'
+import PrintView from './pages/PrintView'
 import './index.css'
 
 function AuthenticatedApp() {
@@ -16,18 +17,23 @@ function AuthenticatedApp() {
   useWebSocket()
   if (!user) return <Navigate to="/login" replace />
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/sheet/new" element={<SheetForm />} />
-        <Route path="/sheet/:id" element={<SheetDetail />} />
-        <Route path="/sheet/:id/edit" element={<SheetForm />} />
-        <Route path="/employees" element={<Employees />} />
-        <Route path="/repository" element={<Repository />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppLayout>
+    <Routes>
+      <Route path="/print" element={<PrintView />} />
+      <Route path="/*" element={
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/sheet/new" element={<SheetForm />} />
+            <Route path="/sheet/:id" element={<SheetDetail />} />
+            <Route path="/sheet/:id/edit" element={<SheetForm />} />
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/repository" element={<Repository />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppLayout>
+      } />
+    </Routes>
   )
 }
 

@@ -370,6 +370,7 @@ export default function SheetForm() {
   // Attachments
   const [attachments, setAttachments] = useState<File[]>([])
   const [legacyAttachments, setLegacyAttachments] = useState<string[]>([])
+  const [isSending, setIsSending] = useState(false)
 
   // Dialogs
   const [employeeDialog, setEmployeeDialog] = useState<{ idx: number; role: string; type: 'action'|'info' } | null>(null)
@@ -579,15 +580,23 @@ export default function SheetForm() {
       message.warning('Please select at least one recipient before sending')
       return
     }
+    
+    setIsSending(true)
+    message.loading({ content: 'Sending Action Sheet & Notifying Recipients...', key: 'send-progress', duration: 0 })
+    
     try {
       if (isEdit && id) {
         await updateSheet(id, { title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
       } else {
         await createSheet({ title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
       }
-      message.success('Action Sheet sent!')
+      message.success({ content: 'Action Sheet sent successfully!', key: 'send-progress' })
       navigate('/')
-    } catch { message.error('Failed to send') }
+    } catch { 
+      message.error({ content: 'Failed to send Action Sheet', key: 'send-progress' }) 
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const handleClear = () => {
@@ -940,10 +949,11 @@ export default function SheetForm() {
             style={{ background: '#3b82f6', borderColor: '#3b82f6', color: 'white', fontWeight: 600 }}>
             Preview
           </Button>
-          <Button type="primary" icon={<SendOutlined />} onClick={handleSend}
-            style={{ background: '#800000', borderColor: '#800000', fontWeight: 600 }}>
-            Send
-          </Button>
+            <Button type="primary" size="large" icon={<SendOutlined />}
+              onClick={handleSend} style={{ background: '#2563eb', fontWeight: 600, paddingInline: 24 }}
+              loading={isSending}>
+              {isSending ? 'Sending...' : 'Send Action Sheet'}
+            </Button>
           <Button icon={<ClearOutlined />} onClick={handleClear}
             style={{ background: '#94a3b8', borderColor: '#94a3b8', color: 'white', fontWeight: 600 }}>
             Clear Form
