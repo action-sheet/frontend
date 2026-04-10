@@ -302,7 +302,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Admin Panel & Stats (Visible to Admin Only) ── */}
-      {user?.role === 'admin' && (
+      {user?.role?.toLowerCase() === 'admin' && (
         <>
           <div className="admin-panel">
             <div className="admin-panel-title">⚙ Administration</div>
