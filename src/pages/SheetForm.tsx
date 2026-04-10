@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, message, Modal, Input, Tag, Tooltip } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, EyeOutlined, SendOutlined, ClearOutlined, PaperClipOutlined, PlusOutlined, DeleteOutlined, CloseCircleOutlined, SwapOutlined, FileOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
-import { employeesApi, sheetsApi } from '../api/client'
+import { employeesApi, sheetsApi, projectsApi } from '../api/client'
 import dayjs from 'dayjs'
 
 /* ════════════════════════════════════════
@@ -821,12 +821,12 @@ export default function SheetForm() {
             <div className="attached-file-item">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileOutlined style={{ color: '#800000', fontSize: 14 }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#800000' }}>
-                  Generated PDF
-                </span>
-                <span style={{ fontSize: 10, color: '#888' }}>
+                <a href={projectsApi.serveFileUrl(currentSheet.pdfPath!)} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 12, fontWeight: 600, color: '#800000', textDecoration: 'none', cursor: 'pointer' }}
+                  onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}>
                   {currentSheet.pdfPath.split('/').pop() || currentSheet.pdfPath.split('\\').pop()}
-                </span>
+                </a>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <Tooltip title="Open PDF">
