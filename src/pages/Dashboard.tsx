@@ -312,6 +312,7 @@ export default function Dashboard() {
               <Button icon={<MailOutlined />} onClick={() => message.info('Email Config coming soon...')}>Email Config</Button>
               <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
               <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
+              <Button icon={<FileTextOutlined />} onClick={() => navigate('/admin/draft-recovery')} style={{ borderColor: '#7c3aed', color: '#7c3aed' }}>Draft Recovery</Button>
             </div>
           </div>
 

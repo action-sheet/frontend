@@ -92,6 +92,13 @@ export const authApi = {
     api.get('/api/auth/me', { params: { email } }),
 };
 
+// ========== Draft Recovery API (Admin) ==========
+export const draftRecoveryApi = {
+  list: () => api.get('/api/admin/draft-recovery'),
+  restore: (fileName: string) => api.post(`/api/admin/draft-recovery/restore/${encodeURIComponent(fileName)}`),
+  deleteSnapshot: (fileName: string) => api.delete(`/api/admin/draft-recovery/${encodeURIComponent(fileName)}`),
+};
+
 // ========== Project API ==========
 export const projectsApi = {
   getAll: () => api.get('/api/projects'),
