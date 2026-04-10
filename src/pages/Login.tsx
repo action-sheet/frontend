@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, message } from 'antd'
-import { MailOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { MailOutlined, ArrowRightOutlined, LockOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 
 export default function Login() {
@@ -9,15 +9,15 @@ export default function Login() {
   const navigate = useNavigate()
   const { login } = useAuthStore()
 
-  const onFinish = async (values: { email: string }) => {
+  const onFinish = async (values: { email: string; password?: string }) => {
     setLoading(true)
     try {
-      const success = await login(values.email)
+      const success = await login(values.email, values.password)
       if (success) {
         message.success('Welcome back!')
         navigate('/')
       } else {
-        message.error('User not found or inactive')
+        message.error('Invalid email or password')
       }
     } catch {
       message.error('Login failed. Please try again.')
@@ -90,7 +90,25 @@ export default function Login() {
             />
           </Form.Item>
 
-          <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: 'Please enter your password' },
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined style={{ color: '#aaa' }} />}
+              placeholder="Enter your password"
+              style={{
+                height: 48,
+                fontSize: '0.95rem',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 16 }}>
             <Button
               type="primary"
               htmlType="submit"

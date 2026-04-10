@@ -312,7 +312,6 @@ export default function Dashboard() {
               <Button icon={<MailOutlined />} onClick={() => message.info('Email Config coming soon...')}>Email Config</Button>
               <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
               <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
-              <Button icon={<DownloadOutlined />} onClick={() => message.info('Backup Data coming soon...')}>Backup Data</Button>
             </div>
           </div>
 

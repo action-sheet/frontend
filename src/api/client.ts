@@ -82,8 +82,8 @@ export const sheetsApi = {
 
 // ========== Auth API ==========
 export const authApi = {
-  login: (email: string) =>
-    api.post('/api/auth/login', { email }),
+  login: (email: string, password?: string) =>
+    api.post('/api/auth/login', { email, password }),
 
   logout: () =>
     api.post('/api/auth/logout'),

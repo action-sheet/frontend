@@ -44,7 +44,7 @@ export interface User {
 interface AuthState {
   user: User | null;
   isLoading: boolean;
-  login: (email: string) => Promise<boolean>;
+  login: (email: string, password?: string) => Promise<boolean>;
   logout: () => void;
   loadUser: () => void;
 }
@@ -53,35 +53,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
 
-  login: async (email: string) => {
+  login: async (email: string, password?: string) => {
     set({ isLoading: true });
     try {
-      // Try to find employee in the directory
-      const response = await employeesApi.getByEmail(email);
-      const emp = response.data;
+      const response = await authApi.login(email, password);
+      const data = response.data;
       const user: User = {
-        email: emp.email,
-        name: emp.name,
-        role: emp.role || 'User',
-        department: emp.department || '',
-        hierarchyLevel: emp.hierarchyLevel || 5,
+        email: data.email,
+        name: data.name,
+        role: data.role || 'User',
+        department: data.department || '',
+        hierarchyLevel: data.hierarchyLevel || 5,
       };
       localStorage.setItem('user', JSON.stringify(user));
       set({ user, isLoading: false });
       return true;
     } catch {
-      // If employee not found, create a temporary user session
-      // This allows login without pre-seeded data (dev/testing)
-      const user: User = {
-        email,
-        name: email.split('@')[0].replace(/[._]/g, ' '),
-        role: 'Admin',
-        department: 'General',
-        hierarchyLevel: 1,
-      };
-      localStorage.setItem('user', JSON.stringify(user));
-      set({ user, isLoading: false });
-      return true;
+      set({ isLoading: false });
+      return false;
     }
   },
 
