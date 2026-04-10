@@ -570,6 +570,7 @@ export default function SheetForm() {
         await createSheet({ title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
       }
       message.success('Draft saved!')
+      navigate('/')
     } catch { message.error('Failed to save draft') }
   }
 
