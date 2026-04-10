@@ -288,11 +288,17 @@ export default function Dashboard() {
             {stats.total} total · {stats.inProgress} active
           </p>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large"
-          onClick={handleNewSheetClick}
-          style={{ height: 40, paddingInline: 20, fontWeight: 600 }}>
-          New Action Sheet
-        </Button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Button icon={<PrinterOutlined />} size="large" onClick={() => setPrintModal(true)}
+            style={{ height: 40, fontWeight: 500 }}>
+            Print
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} size="large"
+            onClick={handleNewSheetClick}
+            style={{ height: 40, paddingInline: 20, fontWeight: 600 }}>
+            New Action Sheet
+          </Button>
+        </div>
       </div>
 
       {/* ── Admin Panel & Stats (Visible to Admin Only) ── */}
@@ -307,7 +313,6 @@ export default function Dashboard() {
               <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
               <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
               <Button icon={<DownloadOutlined />} onClick={() => message.info('Backup Data coming soon...')}>Backup Data</Button>
-              <Button icon={<PrinterOutlined />} onClick={() => setPrintModal(true)}>Print</Button>
             </div>
           </div>
 
