@@ -369,18 +369,9 @@ export default function Dashboard() {
             pagination={{ pageSize:20, showSizeChanger:true, showTotal: t => <span style={{color:'var(--text-muted)'}}>{t} sheets</span> }}
             size="middle"
             onRow={r => ({
-              onClick: () => navigate(`/sheet/${r.id}`),
-              onDoubleClick: (e) => {
-                e.preventDefault()
+              onClick: () => {
                 const isDraft = r.workflowState === 'DRAFT' || r.status === 'DRAFT'
-                if (isDraft) {
-                  navigate(`/sheet/${r.id}/edit`)
-                } else if (r.pdfPath) {
-                  // Open PDF in new tab
-                  window.open(projectsApi.serveFileUrl(r.pdfPath), '_blank')
-                } else {
-                  navigate(`/sheet/${r.id}`)
-                }
+                navigate(isDraft ? `/sheet/${r.id}/edit` : `/sheet/${r.id}`)
               },
               style: { cursor: 'pointer' },
             })} />
