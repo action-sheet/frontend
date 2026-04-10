@@ -188,10 +188,8 @@ export default function Dashboard() {
       ),
     },
     {
-      title: 'Conflict', key: 'conflict', width: 80,
-      render: (_, r) => r.hasConflict ? (
-        <span className={`status-pill status-pill--${r.conflictSeverity === 'MAJOR' ? 'danger' : 'warning'}`}>⚡ {r.conflictSeverity}</span>
-      ) : null,
+      title: 'Ref. No', key: 'refNo', width: 140,
+      render: (_, r) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{r.formData?.refNo || '—'}</span>,
     },
     {
       title: 'Responses', key: 'responses', width: 90, align: 'center' as const,
@@ -207,16 +205,14 @@ export default function Dashboard() {
       },
     },
     {
-      title: 'Due', dataIndex: 'dueDate', key: 'dueDate', width: 120,
-      sorter: (a, b) => dayjs(a.dueDate).unix() - dayjs(b.dueDate).unix(),
-      render: (date: string, r) => {
+      title: 'Date Created', dataIndex: 'createdDate', key: 'createdDate', width: 130,
+      sorter: (a, b) => dayjs(a.createdDate).unix() - dayjs(b.createdDate).unix(),
+      render: (date: string) => {
         const d = dayjs(date)
-        const overdue = d.isBefore(dayjs()) && r.workflowState !== 'COMPLETED'
         return (
           <Tooltip title={d.format('ddd, DD MMM YYYY HH:mm')}>
-            <span style={{ color: overdue ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: overdue ? 600 : 400 }}>
-              {overdue && <WarningOutlined style={{ marginRight:4 }} />}
-              {date ? d.fromNow() : '—'}
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {date ? d.format('DD MMM YYYY') : '—'}
             </span>
           </Tooltip>
         )
@@ -230,7 +226,7 @@ export default function Dashboard() {
           <div style={{ display:'flex', gap:4, alignItems:'center' }}>
             {isDraft ? (
               <Button size="small" icon={<EditOutlined />}
-                style={{ background: '#f59e0b', borderColor: '#f59e0b', color: 'white', fontWeight: 600, fontSize: '0.75rem' }}
+                style={{ background: '#fee2e2', borderColor: '#fee2e2', color: '#dc2626', fontWeight: 600, fontSize: '0.75rem' }}
                 onClick={(e) => { e.stopPropagation(); navigate(`/sheet/${r.id}/edit`) }}>
                 Edit Draft
               </Button>
@@ -296,47 +292,51 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* ── Admin Panel ── */}
-      <div className="admin-panel">
-        <div className="admin-panel-title">⚙ Administration</div>
-        <div className="admin-btn-group">
-          <Button icon={<TeamOutlined />} onClick={() => navigate('/employees')}>Manage Employees</Button>
-          <Button icon={<ProjectOutlined />} onClick={() => navigate('/projects')}>Manage Projects</Button>
-          <Button icon={<MailOutlined />}>Email Config</Button>
-          <Button icon={<SettingOutlined />}>AD Settings</Button>
-          <Button icon={<ExclamationCircleOutlined />}>Notifications</Button>
-          <Button icon={<DownloadOutlined />}>Backup Data</Button>
-          <Button icon={<PrinterOutlined />}>Bulk Print</Button>
-        </div>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="stagger" style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
-        {[
-          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
-          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },
-          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)' },
-          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)' },
-          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)' },
-        ].map(s => (
-          <div className="stat-card fade-in-up" key={s.label}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div>
-                <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
-                <div className="stat-label">{s.label}</div>
-              </div>
-              <div style={{ width:32, height:32, borderRadius:6, display:'flex',
-                alignItems:'center', justifyContent:'center', fontSize:14, color:s.color,
-                background: s.color === 'var(--accent)' ? 'var(--accent-muted)' :
-                  s.color === 'var(--warning)' ? 'var(--warning-muted)' :
-                  s.color === 'var(--info)' ? 'var(--info-muted)' :
-                  s.color === 'var(--success)' ? 'var(--success-muted)' : 'var(--danger-muted)' }}>
-                {s.icon}
-              </div>
+      {/* ── Admin Panel & Stats (Visible to Admin Only) ── */}
+      {user?.role === 'admin' && (
+        <>
+          <div className="admin-panel">
+            <div className="admin-panel-title">⚙ Administration</div>
+            <div className="admin-btn-group">
+              <Button icon={<TeamOutlined />} onClick={() => navigate('/employees')}>Manage Users & Employees</Button>
+              <Button icon={<ProjectOutlined />} onClick={() => navigate('/projects')}>Manage Projects</Button>
+              <Button icon={<MailOutlined />} onClick={() => message.info('Email Config coming soon...')}>Email Config</Button>
+              <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
+              <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
+              <Button icon={<DownloadOutlined />} onClick={() => message.info('Backup Data coming soon...')}>Backup Data</Button>
+              <Button icon={<PrinterOutlined />} onClick={() => message.info('Print functionality coming soon...')}>Print</Button>
             </div>
           </div>
-        ))}
-      </div>
+
+          {/* Stat Cards */}
+          <div className="stagger" style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
+            {[
+              { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
+              { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },
+              { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)' },
+              { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)' },
+              { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)' },
+            ].map(s => (
+              <div className="stat-card fade-in-up" key={s.label}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div>
+                    <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
+                    <div className="stat-label">{s.label}</div>
+                  </div>
+                  <div style={{ width:32, height:32, borderRadius:6, display:'flex',
+                    alignItems:'center', justifyContent:'center', fontSize:14, color:s.color,
+                    background: s.color === 'var(--accent)' ? 'var(--accent-muted)' :
+                      s.color === 'var(--warning)' ? 'var(--warning-muted)' :
+                      s.color === 'var(--info)' ? 'var(--info-muted)' :
+                      s.color === 'var(--success)' ? 'var(--success-muted)' : 'var(--danger-muted)' }}>
+                    {s.icon}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Search Bar */}
       <div className="action-bar">
