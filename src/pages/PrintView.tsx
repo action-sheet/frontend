@@ -73,7 +73,7 @@ export default function PrintView() {
       `}</style>
       
       <div className="print-container">
-        {sheets.map((sheet, idx) => {
+        {sheets.map((sheet) => {
           const formData = sheet.formData || {}
           return (
             <div key={sheet.id} className="page-break" style={{ padding: '40px 20px' }}>

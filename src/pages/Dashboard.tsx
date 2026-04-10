@@ -4,9 +4,9 @@ import { Table, Button, Input, Modal, message, Tooltip, Dropdown } from 'antd'
 import {
   PlusOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined,
   EyeOutlined, ExclamationCircleOutlined, ThunderboltOutlined,
-  ClockCircleOutlined, CheckCircleOutlined, WarningOutlined,
+  ClockCircleOutlined, CheckCircleOutlined,
   FileTextOutlined, EditOutlined, TeamOutlined, ProjectOutlined,
-  SettingOutlined, DownloadOutlined, PrinterOutlined, MailOutlined,
+  SettingOutlined, PrinterOutlined, MailOutlined,
   MoreOutlined, FilePdfOutlined, PaperClipOutlined, AppstoreOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { sheetsApi, employeesApi } from '../api/client';
+import { sheetsApi, authApi } from '../api/client';
 
 // ========== Types ==========
 export interface ActionSheet {
