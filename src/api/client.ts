@@ -99,6 +99,22 @@ export const draftRecoveryApi = {
   deleteSnapshot: (fileName: string) => api.delete(`/api/admin/draft-recovery/${encodeURIComponent(fileName)}`),
 };
 
+// ========== Admin Config API ==========
+export const configApi = {
+  getEmail: () => api.get('/api/admin/config/email'),
+  getAd: () => api.get('/api/admin/config/ad'),
+  getNotifications: () => api.get('/api/admin/config/notifications'),
+  getSystem: () => api.get('/api/admin/config/system'),
+};
+
+// ========== Admin Users API (users.json) ==========
+export const usersApi = {
+  list: () => api.get('/api/admin/users'),
+  add: (data: { username: string; email: string; password: string; role: string }) => api.post('/api/admin/users', data),
+  update: (email: string, data: { username?: string; role?: string; password?: string }) => api.put(`/api/admin/users/${encodeURIComponent(email)}`, data),
+  remove: (email: string) => api.delete(`/api/admin/users/${encodeURIComponent(email)}`),
+};
+
 // ========== Project API ==========
 export const projectsApi = {
   getAll: () => api.get('/api/projects'),

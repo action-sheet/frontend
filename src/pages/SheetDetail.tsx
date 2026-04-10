@@ -62,7 +62,7 @@ export default function SheetDetail() {
   }
 
   const sheet = currentSheet
-  const isGM = user?.role === 'GM'
+  const isGM = user?.role?.toLowerCase() === 'gm' || user?.role?.toLowerCase() === 'general manager (gm)' || user?.role?.toLowerCase() === 'general manager'
   const isDraft = sheet.workflowState === 'DRAFT'
   const isLocked = !!sheet.overriddenBy
   const recipientCount = Object.keys(sheet.assignedTo || {}).length

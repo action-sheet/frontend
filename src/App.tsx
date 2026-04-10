@@ -11,6 +11,8 @@ import Employees from './pages/Employees'
 import Repository from './pages/Repository'
 import PrintView from './pages/PrintView'
 import DraftRecovery from './pages/DraftRecovery'
+import Settings from './pages/Settings'
+import Projects from './pages/Projects'
 import './index.css'
 
 function AuthenticatedApp() {
@@ -29,7 +31,9 @@ function AuthenticatedApp() {
             <Route path="/sheet/:id" element={<SheetDetail />} />
             <Route path="/sheet/:id/edit" element={<SheetForm />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/projects" element={<Projects />} />
             <Route path="/repository" element={<Repository />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/admin/draft-recovery" element={<DraftRecovery />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

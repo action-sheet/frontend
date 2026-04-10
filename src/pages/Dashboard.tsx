@@ -309,10 +309,7 @@ export default function Dashboard() {
             <div className="admin-btn-group">
               <Button icon={<TeamOutlined />} onClick={() => navigate('/employees')}>Manage Users & Employees</Button>
               <Button icon={<ProjectOutlined />} onClick={() => navigate('/projects')}>Manage Projects</Button>
-              <Button icon={<MailOutlined />} onClick={() => message.info('Email Config coming soon...')}>Email Config</Button>
-              <Button icon={<SettingOutlined />} onClick={() => message.info('AD Settings coming soon...')}>AD Settings</Button>
-              <Button icon={<ExclamationCircleOutlined />} onClick={() => message.info('Notifications coming soon...')}>Notifications</Button>
-              <Button icon={<FileTextOutlined />} onClick={() => navigate('/admin/draft-recovery')} style={{ borderColor: '#7c3aed', color: '#7c3aed' }}>Draft Recovery</Button>
+              <Button icon={<SettingOutlined />} onClick={() => navigate('/settings')}>Settings & Config</Button>
             </div>
           </div>
 

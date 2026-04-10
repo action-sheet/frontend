@@ -109,6 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const menuItems = [
+    { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     {
       key: 'new-sheet-trigger',
       icon: <PlusOutlined />,
@@ -116,24 +117,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     },
     { key: '/repository', icon: <FolderOpenOutlined />, label: 'Repository' },
     { type: 'divider' as const },
-    { key: '/employees', icon: <TeamOutlined />, label: 'Employees' },
-    {
-      key: 'projects-trigger',
-      icon: <ProjectOutlined />,
-      label: (
-        <Dropdown
-          menu={{ items: projectsDropdownItems, onClick: handleProjectsMenuClick }}
-          trigger={['click']}
-          open={projectsDropdownOpen}
-          onOpenChange={setProjectsDropdownOpen}
-          placement="bottomLeft"
-        >
-          <span style={{ display: 'block', width: '100%' }} onClick={e => { e.stopPropagation(); setProjectsDropdownOpen(!projectsDropdownOpen) }}>
-            Projects ({projects.length})
-          </span>
-        </Dropdown>
-      ),
-    },
+    { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
+    { key: '/projects', icon: <ProjectOutlined />, label: `Projects (${projects.length})` },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
   ]
 
