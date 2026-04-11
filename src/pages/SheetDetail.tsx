@@ -28,6 +28,7 @@ import {
   HistoryOutlined,
 } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
+import { projectsApi } from '../api/client'
 import dayjs from 'dayjs'
 
 const { TextArea } = Input
@@ -233,7 +234,10 @@ export default function SheetDetail() {
             <Button
               icon={<FilePdfOutlined />}
               size="large"
-              onClick={() => window.open(`/api/sheets/${id}/pdf`, '_blank')}
+              onClick={() => {
+                const url = projectsApi.serveFileUrl(sheet.pdfPath!)
+                window.open(url, '_blank')
+              }}
               style={{ height: 40, color: '#fff', background: '#2563eb', borderColor: '#2563eb' }}
             >
               View PDF
