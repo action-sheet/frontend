@@ -35,7 +35,15 @@ export default function Projects() {
     setSheetsLoading(true)
     try {
       const res = await sheetsApi.getAll()
-      const filtered = (res.data || []).filter((s: any) => s.projectId === p.id)
+      const projName = p.name.toLowerCase().replace(/[\s\-]+/g, '')
+      const filtered = (res.data || []).filter((s: any) => {
+        // Match by exact projectId first
+        if (s.projectId === p.id) return true
+        // Fallback: match by project name in the originalTo field or in the sheet ID prefix
+        const sheetIdNorm = (s.id || '').toLowerCase().replace(/[\s\-]+/g, '')
+        const originalTo = ((s.formData?.originalTo) || '').toLowerCase().replace(/[\s\-]+/g, '')
+        return sheetIdNorm.startsWith(projName) || originalTo.includes(projName)
+      })
       setSheets(filtered)
     } catch { message.error('Failed to load sheets') }
     finally { setSheetsLoading(false) }
