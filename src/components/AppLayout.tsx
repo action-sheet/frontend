@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Layout, Menu, Avatar, Dropdown, Button, Modal, Input, message } from 'antd'
+import { Layout, Menu, Avatar, Button, Dropdown, Modal, Input, message } from 'antd'
 import {
   PlusOutlined,
   DashboardOutlined,
@@ -34,7 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Projects state
   const [projects, setProjects] = useState<Project[]>([])
-  const [projectsDropdownOpen, setProjectsDropdownOpen] = useState(false)
+
   const [newProjectModal, setNewProjectModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
 
@@ -76,37 +76,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate(`/sheet/new?project=${encodeURIComponent(projectId)}`)
   }
 
-  // Projects dropdown menu
-  const projectsDropdownItems = [
-    ...projects.map(p => ({
-      key: p.id,
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-          <div style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: p.color || '#2563eb', flexShrink: 0,
-          }} />
-          <span style={{ fontSize: '0.85rem' }}>{p.name}</span>
-        </div>
-      ),
-    })),
-    { type: 'divider' as const },
-    {
-      key: 'create',
-      label: (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#2563eb', fontWeight: 600, fontSize: '0.85rem' }}>
-          <PlusOutlined /> Create New Project
-        </div>
-      ),
-    },
-  ]
-
-  const handleProjectsMenuClick = ({ key }: { key: string }) => {
-    if (key === 'create') {
-      setNewProjectModal(true)
-    }
-    setProjectsDropdownOpen(false)
-  }
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Tabs, Card, Descriptions, Tag, Button, Spin, message, Table, Modal, Tooltip, Badge } from 'antd'
+import { Tabs, Card, Descriptions, Tag, Button, Spin, message, Table, Modal, Tooltip } from 'antd'
 import {
   MailOutlined, CloudServerOutlined, BellOutlined, FileTextOutlined,
   ArrowLeftOutlined, UndoOutlined, DeleteOutlined, ExclamationCircleOutlined,

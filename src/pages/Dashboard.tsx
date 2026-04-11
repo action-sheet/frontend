@@ -6,7 +6,7 @@ import {
   EyeOutlined, ExclamationCircleOutlined, ThunderboltOutlined,
   ClockCircleOutlined, CheckCircleOutlined,
   FileTextOutlined, EditOutlined, TeamOutlined, ProjectOutlined,
-  SettingOutlined, PrinterOutlined, MailOutlined,
+  SettingOutlined, PrinterOutlined,
   MoreOutlined, FilePdfOutlined, PaperClipOutlined, AppstoreOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'

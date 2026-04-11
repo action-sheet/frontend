@@ -35,6 +35,20 @@ export function useWebSocket() {
               const event = JSON.parse(message.body);
               console.log('📡 Sheet event:', event.type, event.sheetId);
               fetchSheets();
+
+              // Native notification for Electron desktop app
+              const electronAPI = (window as any).electronAPI;
+              if (electronAPI?.sendNotification) {
+                const typeLabel = event.type === 'CREATED' ? 'New Sheet'
+                  : event.type === 'UPDATED' ? 'Sheet Updated'
+                  : event.type === 'DELETED' ? 'Sheet Deleted'
+                  : event.type === 'SENT' ? 'Sheet Sent'
+                  : 'Sheet Activity';
+                electronAPI.sendNotification(
+                  typeLabel,
+                  event.title || event.sheetId || 'Action sheet activity detected'
+                );
+              }
             } catch (e) {
               console.warn('Failed to parse WS message', e);
             }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, message } from 'antd'
-import { MailOutlined, ArrowRightOutlined, LockOutlined, UserOutlined } from '@ant-design/icons'
+import { ArrowRightOutlined, LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 
 export default function Login() {
