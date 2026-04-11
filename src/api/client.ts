@@ -87,6 +87,12 @@ export const sheetsApi = {
 
   // Helper to open PDF in new tab (bypasses ngrok warning)
   openPdf: async (pdfPath: string) => {
+    // Dynamic import of message to avoid circular dependency
+    const { message } = await import('antd')
+    
+    // Show loading message
+    const hideLoading = message.loading('Fetching PDF...', 0)
+    
     try {
       const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
       
@@ -111,6 +117,10 @@ export const sheetsApi = {
       const blob = await response.blob()
       console.log('Blob created:', blob.size, 'bytes')
       
+      // Hide loading and show success
+      hideLoading()
+      message.success('PDF loaded successfully', 1.5)
+      
       // Create object URL and open in new tab
       const blobUrl = URL.createObjectURL(blob)
       console.log('Opening blob URL:', blobUrl)
@@ -119,7 +129,7 @@ export const sheetsApi = {
       
       if (!newWindow) {
         console.error('Popup blocked')
-        alert('Please allow popups for this site to view PDFs')
+        message.error('Please allow popups for this site to view PDFs')
       }
       
       // Clean up the blob URL after a delay
@@ -128,12 +138,18 @@ export const sheetsApi = {
         console.log('Blob URL revoked')
       }, 1000)
     } catch (error) {
+      hideLoading()
       console.error('Failed to open PDF:', error)
-      alert(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   },
 
   downloadPdf: async (pdfPath: string, fileName?: string) => {
+    // Dynamic import of message to avoid circular dependency
+    const { message } = await import('antd')
+    
+    const hideLoading = message.loading('Downloading PDF...', 0)
+    
     try {
       const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
       const response = await fetch(url, {
@@ -145,6 +161,10 @@ export const sheetsApi = {
       })
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       const blob = await response.blob()
+      
+      hideLoading()
+      message.success('PDF downloaded', 1.5)
+      
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = blobUrl
@@ -154,8 +174,9 @@ export const sheetsApi = {
       document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
     } catch (error) {
+      hideLoading()
       console.error('Failed to download PDF:', error)
-      alert(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      message.error(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   },
 

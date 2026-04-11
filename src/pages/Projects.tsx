@@ -151,7 +151,6 @@ export default function Projects() {
                 rowKey="id"
                 size="small"
                 pagination={{ pageSize: 10 }}
-                onRow={r => ({ onClick: () => navigate(`/sheet/${r.id}`), style: { cursor: 'pointer' } })}
                 locale={{ emptyText: 'No action sheets assigned to this project.' }}
                 columns={[
                   { title: 'ID', dataIndex: 'id', key: 'id', width: 200,
@@ -159,12 +158,32 @@ export default function Projects() {
                   { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true,
                     render: (t: string) => <strong>{t}</strong> },
                   { title: 'Status', dataIndex: 'status', key: 'status', width: 120,
-                    render: (s: string, sheet: Sheet) => {
+                    render: (_: string, sheet: Sheet) => {
                       const displayStatus = getDisplayStatus(sheet)
                       return <Tag color={statusColor(displayStatus)}>{displayStatus}</Tag>
                     } },
                   { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
                     render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },
+                  { title: 'Actions', key: 'actions', width: 180,
+                    render: (_: any, sheet: any) => (
+                      <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          size="small" 
+                          onClick={() => navigate(`/sheet/${sheet.id}`)}
+                        >
+                          View Details
+                        </Button>
+                        {sheet.pdfPath && (
+                          <Button 
+                            size="small" 
+                            type="primary"
+                            onClick={() => sheetsApi.openPdf(sheet.pdfPath)}
+                          >
+                            View PDF
+                          </Button>
+                        )}
+                      </div>
+                    ) },
                 ]}
               />
             </>
