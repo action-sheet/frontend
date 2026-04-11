@@ -250,7 +250,7 @@ export default function SheetDetail() {
               icon={<FilePdfOutlined />}
               size="large"
               onClick={() => {
-                const url = projectsApi.serveFileUrl(sheet.pdfPath!)
+                const url = sheetsApi.pdfUrl(sheet.pdfPath!)
                 window.open(url, '_blank')
               }}
               style={{ height: 40, color: '#fff', background: '#2563eb', borderColor: '#2563eb' }}

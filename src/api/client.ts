@@ -85,6 +85,13 @@ export const sheetsApi = {
   fileUrl: (fileName: string) =>
     `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
 
+  // Helper to get PDF URL from pdfPath (extracts filename from full path)
+  pdfUrl: (pdfPath: string) => {
+    // Extract filename from path (handles both Windows and Unix paths)
+    const fileName = pdfPath.split(/[/\\]/).pop() || pdfPath
+    return `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`
+  },
+
   // Attachment management
   uploadAttachments: (sheetId: string, files: File[]) => {
     const formData = new FormData()
