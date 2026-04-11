@@ -1,0 +1,82 @@
+[
+  {
+    "username": "admin",
+    "email": "admin@alahlia.com",
+    "password": "2ziDu9mA4thEWIGu8XVNcA==",
+    "role": "admin",
+    "createdTimestamp": 1771485890070,
+    "lastLogin": 1775889181449
+  },
+  {
+    "username": "prince",
+    "email": "pwalson@acg.com.kw",
+    "password": "InAZmp01d/nNaWv8wcg31Q==",
+    "role": "admin",
+    "createdTimestamp": 1771485937413,
+    "lastLogin": 1775823755486
+  },
+  {
+    "username": "user1",
+    "email": "jjimi@acg.com.kw",
+    "password": "ZLJxeF6SOAh3OpAsgjJnAA==",
+    "role": "user",
+    "createdTimestamp": 1771486012606,
+    "lastLogin": 1775889161591
+  },
+  {
+    "username": "user2",
+    "email": "sghanem@acg.com.kw",
+    "password": "kuLZ0+weXj3ekLdvseUZfg==",
+    "role": "user",
+    "createdTimestamp": 1771486059166,
+    "lastLogin": 1771758649249
+  },
+  {
+    "username": "user3",
+    "email": "skhourshid@acg.com.kw",
+    "password": "4SzJ15meek/ie9YfjDE7YA==",
+    "role": "GM",
+    "createdTimestamp": 1771486090932,
+    "lastLogin": 0
+  },
+  {
+    "username": "user4",
+    "email": "raghebk@acg.com.kw",
+    "password": "azMH0YtoAXtn1Y0TScENDA==",
+    "role": "Ex.Sec",
+    "createdTimestamp": 1773049084569,
+    "lastLogin": 1773216032510
+  },
+  {
+    "username": "user5",
+    "email": "walson549@gmail.com",
+    "password": "nWU6XnfvDh2OH6iNPKPOmg==",
+    "role": "admin",
+    "createdTimestamp": 1773218019325,
+    "lastLogin": 1774939532574
+  },
+  {
+    "username": "user6",
+    "email": "mamin@acg.com.kw",
+    "password": "96fdGjTrMRT3x5/klyrHHA==",
+    "role": "viewer",
+    "createdTimestamp": 1775386409621,
+    "lastLogin": 1775387283557
+  },
+  {
+    "username": "user7",
+    "email": "echebaro@acg.com.kw",
+    "password": "p+jDMLsYmOZ12tI+WwRCHg==",
+    "role": "viewer",
+    "createdTimestamp": 1775386446596,
+    "lastLogin": 0
+  },
+  {
+    "username": "user8",
+    "email": "hasad@acg.com.kw",
+    "password": "bymne264ZbwntsVQNtdMDQ==",
+    "role": "viewer",
+    "createdTimestamp": 1775386474632,
+    "lastLogin": 0
+  }
+]

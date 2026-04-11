@@ -19,8 +19,17 @@ export default function Login() {
       } else {
         message.error('Invalid email or password')
       }
-    } catch {
-      message.error('Login failed. Please try again.')
+    } catch (error: any) {
+      console.error('Login error:', error)
+      if (error.response?.status === 500) {
+        message.error('Server error. Please check if the backend is properly configured.')
+      } else if (error.response?.status === 401) {
+        message.error('Invalid email or password')
+      } else if (error.response?.data?.message) {
+        message.error(error.response.data.message)
+      } else {
+        message.error('Login failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

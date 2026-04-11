@@ -47,6 +47,9 @@ export const sheetsApi = {
   update: (id: string, sheet: any) =>
     api.put(`/api/sheets/${id}`, sheet),
 
+  patch: (id: string, updates: any) =>
+    api.patch(`/api/sheets/${id}`, updates),
+
   delete: (id: string, deletedBy: string) =>
     api.delete(`/api/sheets/${id}`, { params: { deletedBy } }),
 

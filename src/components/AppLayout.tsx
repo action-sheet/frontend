@@ -88,12 +88,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       label: 'New Sheet',
     },
     { key: '/repository', icon: <FolderOpenOutlined />, label: 'Repository' },
-    { type: 'divider' as const },
-    { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
     { key: '/projects', icon: <ProjectOutlined />, label: `Projects (${projects.length})` },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
     ...(isAdmin ? [
       { type: 'divider' as const },
+      { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
       { key: '/admin/draft-recovery', icon: <FileTextOutlined />, label: 'Draft Recovery' },
     ] : []),
   ]

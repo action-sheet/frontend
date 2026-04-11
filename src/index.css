@@ -824,3 +824,16 @@ body {
   border-radius: var(--radius-md) !important;
   box-shadow: var(--shadow-md) !important;
 }
+
+
+/* Optimistic UI - Auto-save pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}

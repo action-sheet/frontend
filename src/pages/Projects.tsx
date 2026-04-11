@@ -81,8 +81,25 @@ export default function Projects() {
     const map: Record<string, string> = {
       DRAFT: 'orange', PENDING: 'blue', 'IN PROGRESS': 'processing',
       'ACTION TAKEN': 'green', COMPLETED: 'green', REJECTED: 'red',
+      'INFORMATIONAL ONLY': 'default', APPROVED: 'green', NOTED: 'cyan',
     }
     return map[s?.toUpperCase()] || 'default'
+  }
+
+  // Helper: Check if all recipients are info-only
+  const isInformationalOnly = (sheet: Sheet) => {
+    // Note: Projects page might not have recipientTypes, so we'll need to check if available
+    const recipientTypes = (sheet as any).recipientTypes || {}
+    const typeValues = Object.values(recipientTypes)
+    return typeValues.length > 0 && typeValues.every(t => t === 'INFO')
+  }
+
+  // Helper: Get display status
+  const getDisplayStatus = (sheet: Sheet) => {
+    if (isInformationalOnly(sheet) && sheet.status !== 'DRAFT') {
+      return 'INFORMATIONAL ONLY'
+    }
+    return sheet.status
   }
 
   return (
@@ -142,7 +159,10 @@ export default function Projects() {
                   { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true,
                     render: (t: string) => <strong>{t}</strong> },
                   { title: 'Status', dataIndex: 'status', key: 'status', width: 120,
-                    render: (s: string) => <Tag color={statusColor(s)}>{s}</Tag> },
+                    render: (s: string, sheet: Sheet) => {
+                      const displayStatus = getDisplayStatus(sheet)
+                      return <Tag color={statusColor(displayStatus)}>{displayStatus}</Tag>
+                    } },
                   { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
                     render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },
                 ]}

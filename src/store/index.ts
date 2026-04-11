@@ -68,8 +68,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('user', JSON.stringify(user));
       set({ user, isLoading: false });
       return true;
-    } catch {
+    } catch (error: any) {
       set({ isLoading: false });
+      console.error('Login error:', error.response?.status, error.response?.data || error.message);
       return false;
     }
   },

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Input, Modal, message, Tooltip, Dropdown } from 'antd'
+import { Table, Button, Input, Modal, message, Tooltip, Dropdown, Select } from 'antd'
 import {
   PlusOutlined, SearchOutlined, ReloadOutlined, DeleteOutlined,
   EyeOutlined, ExclamationCircleOutlined, ThunderboltOutlined,
@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useSheetsStore, useAuthStore, type ActionSheet } from '../store'
-import { projectsApi } from '../api/client'
+import { projectsApi, sheetsApi } from '../api/client'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
@@ -31,7 +31,8 @@ function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
     'ACTION TAKEN': 'success', 'APPROVED': 'success', 'NOTED': 'info', 'COMPLETED': 'success',
     'PENDING': 'warning', 'DRAFT': 'draft-pulse', 'IN PROGRESS': 'accent',
-    'REJECTED / RETURNED': 'danger', 'REVIEW REQUESTED': 'warning', 'INFORMATIONAL ONLY': 'muted',
+    'REJECTED / RETURNED': 'danger', 'REVIEW REQUESTED': 'warning', 
+    'INFORMATIONAL ONLY': 'info', 'INFORMATIONAL ONLY': 'muted',
   }
   return <span className={`status-pill status-pill--${map[status] || 'muted'}`}>{status || 'UNKNOWN'}</span>
 }
@@ -166,6 +167,42 @@ export default function Dashboard() {
     })
   }, [sheets])
 
+  // Helper: Check if all recipients are info-only
+  const isInformationalOnly = (sheet: ActionSheet) => {
+    const types = sheet.recipientTypes || {}
+    const typeValues = Object.values(types)
+    return typeValues.length > 0 && typeValues.every(t => t === 'INFO')
+  }
+
+  // Helper: Get display status
+  const getDisplayStatus = (sheet: ActionSheet) => {
+    if (isInformationalOnly(sheet) && sheet.status !== 'DRAFT') {
+      return 'INFORMATIONAL ONLY'
+    }
+    return sheet.status
+  }
+
+  // GM Status Change Handler
+  const [statusChangeModal, setStatusChangeModal] = useState<{ sheetId: string; currentStatus: string } | null>(null)
+  const [newStatus, setNewStatus] = useState('')
+
+  const handleGMStatusChange = async () => {
+    if (!statusChangeModal || !newStatus) return
+    try {
+      await sheetsApi.override(statusChangeModal.sheetId, {
+        status: newStatus,
+        gmEmail: user?.email || '',
+        note: 'GM Status Override'
+      })
+      message.success('Status updated')
+      setStatusChangeModal(null)
+      setNewStatus('')
+      fetchSheets()
+    } catch {
+      message.error('Failed to update status')
+    }
+  }
+
   const columns: ColumnsType<ActionSheet> = [
     {
       title: 'Sheet', key: 'sheet',
@@ -177,18 +214,38 @@ export default function Dashboard() {
       ),
     },
     {
-      title: 'Status', dataIndex: 'status', key: 'status', width: 160,
+      title: 'Status', dataIndex: 'status', key: 'status', width: 200,
       filters: [
         { text:'Draft', value:'DRAFT' }, { text:'Pending', value:'PENDING' },
         { text:'Action Taken', value:'ACTION TAKEN' }, { text:'Approved', value:'APPROVED' },
+        { text:'Informational Only', value:'INFORMATIONAL ONLY' },
       ],
-      onFilter: (v, r) => r.status === v,
-      render: (status: string, r) => (
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <StatusPill status={status} />
-          {r.overriddenBy && <Tooltip title={`Locked by GM: ${r.overriddenBy}`}><span style={{cursor:'help'}}>🔒</span></Tooltip>}
-        </div>
-      ),
+      onFilter: (v, r) => getDisplayStatus(r) === v,
+      render: (status: string, r) => {
+        const displayStatus = getDisplayStatus(r)
+        const isGM = user?.role?.toLowerCase() === 'gm' || user?.role?.toLowerCase() === 'general manager'
+        return (
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <StatusPill status={displayStatus} />
+            {r.overriddenBy && <Tooltip title={`Locked by GM: ${r.overriddenBy}`}><span style={{cursor:'help'}}>🔒</span></Tooltip>}
+            {isGM && r.status !== 'DRAFT' && (
+              <Tooltip title="Change Status (GM)">
+                <Button 
+                  type="text" 
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setStatusChangeModal({ sheetId: r.id, currentStatus: displayStatus })
+                    setNewStatus(displayStatus)
+                  }}
+                  style={{ padding: '0 4px', height: 20, fontSize: 10 }}
+                />
+              </Tooltip>
+            )}
+          </div>
+        )
+      },
     },
     {
       title: 'Ref. No', key: 'refNo', width: 140,
@@ -239,7 +296,8 @@ export default function Dashboard() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (r.pdfPath) {
-                    const url = projectsApi.serveFileUrl(r.pdfPath)
+                    // Use the sheets API fileUrl method for proper PDF access
+                    const url = sheetsApi.fileUrl(r.pdfPath)
                     window.open(url, '_blank')
                   } else {
                     navigate(`/sheet/${r.id}`)
@@ -255,7 +313,7 @@ export default function Dashboard() {
                   style={{ fontWeight: 600, fontSize: '0.75rem' }}
                   onClick={(e) => {
                     e.stopPropagation()
-                    const url = projectsApi.serveFileUrl(r.pdfPath!)
+                    const url = sheetsApi.fileUrl(r.pdfPath!)
                     window.open(url, '_blank')
                   }}
                 />
@@ -264,7 +322,7 @@ export default function Dashboard() {
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
               { key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) },
-              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(projectsApi.serveFileUrl(r.pdfPath!), '_blank') }] : []),
+              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(sheetsApi.fileUrl(r.pdfPath!), '_blank') }] : []),
               { type:'divider' as const },
               { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) },
             ]}} trigger={['click']}>
@@ -497,6 +555,41 @@ export default function Dashboard() {
           scroll={{ y: 400 }}
           pagination={false}
         />
+      </Modal>
+
+      {/* ── GM Status Change Modal ── */}
+      <Modal
+        title="Change Status (GM Override)"
+        open={!!statusChangeModal}
+        onCancel={() => {
+          setStatusChangeModal(null)
+          setNewStatus('')
+        }}
+        onOk={handleGMStatusChange}
+        okText="Update Status"
+        okButtonProps={{ danger: true }}
+      >
+        <p style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
+          Change the status of this action sheet. This will override the current status.
+        </p>
+        <div>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>New Status</label>
+          <Select
+            value={newStatus}
+            onChange={setNewStatus}
+            style={{ width: '100%' }}
+            options={[
+              { value: 'PENDING', label: 'PENDING' },
+              { value: 'ACTION TAKEN', label: 'ACTION TAKEN' },
+              { value: 'APPROVED', label: 'APPROVED' },
+              { value: 'REJECTED / RETURNED', label: 'REJECTED / RETURNED' },
+              { value: 'NOTED', label: 'NOTED' },
+              { value: 'IN PROGRESS', label: 'IN PROGRESS' },
+              { value: 'COMPLETED', label: 'COMPLETED' },
+              { value: 'INFORMATIONAL ONLY', label: 'INFORMATIONAL ONLY' },
+            ]}
+          />
+        </div>
       </Modal>
     </div>
   )

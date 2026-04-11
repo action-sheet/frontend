@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Button, message, Modal, Input, Tag, Tooltip } from 'antd'
+import { Button, message, Modal, Input, Tag, Tooltip, Progress } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, EyeOutlined, SendOutlined, ClearOutlined, PaperClipOutlined, PlusOutlined, DeleteOutlined, CloseCircleOutlined, SwapOutlined, FileOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
 import { employeesApi, sheetsApi, projectsApi } from '../api/client'
@@ -341,6 +341,11 @@ export default function SheetForm() {
   const isEdit = !!id
   const projectFromUrl = searchParams.get('project') || ''
 
+  // ── Optimistic UI State Management ──
+  const pendingUpdatesRef = useRef<Record<string, any>>({})
+  const updateTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+
   // ── Form Fields (matching legacy exactly) ──
   const [originalTo, setOriginalTo] = useState('')
   const [dateReceived, setDateReceived] = useState(dayjs().format('DD/MM/YYYY'))
@@ -371,11 +376,62 @@ export default function SheetForm() {
   const [attachments, setAttachments] = useState<File[]>([])
   const [legacyAttachments, setLegacyAttachments] = useState<string[]>([])
   const [isSending, setIsSending] = useState(false)
+  
+  // Upload progress tracking
+  const [uploadingFiles, setUploadingFiles] = useState<Map<string, number>>(new Map())
+  const [isUploading, setIsUploading] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Dialogs
   const [employeeDialog, setEmployeeDialog] = useState<{ idx: number; role: string; type: 'action'|'info' } | null>(null)
   const [addEmployeeDialog, setAddEmployeeDialog] = useState<string | null>(null)
   const [categoryEmployees, setCategoryEmployees] = useState<Employee[]>([])
+
+  // ── Optimistic UI: Debounced Auto-Save Function ──
+  const debouncedAutoSave = useCallback(() => {
+    if (!isEdit || !id) return // Only auto-save for existing drafts
+
+    // Clear existing timer
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current)
+    }
+
+    // Set new timer to batch send after 500ms of inactivity
+    updateTimerRef.current = setTimeout(async () => {
+      if (Object.keys(pendingUpdatesRef.current).length === 0) return
+
+      const updates = { ...pendingUpdatesRef.current }
+      pendingUpdatesRef.current = {} // Clear pending updates
+
+      try {
+        setIsSyncing(true)
+        await sheetsApi.patch(id, { formData: updates })
+        console.log('Auto-saved:', updates)
+      } catch (error) {
+        console.error('Auto-save failed:', error)
+        // Optionally show a subtle error indicator
+      } finally {
+        setIsSyncing(false)
+      }
+    }, 500)
+  }, [isEdit, id])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current)
+      }
+    }
+  }, [])
+
+  // ── Optimistic Update Helper ──
+  const optimisticUpdate = useCallback((field: string, value: any) => {
+    // Accumulate changes
+    pendingUpdatesRef.current[field] = value
+    // Trigger debounced save
+    debouncedAutoSave()
+  }, [debouncedAutoSave])
 
   // Load existing sheet
   useEffect(() => {
@@ -468,11 +524,17 @@ export default function SheetForm() {
       loadCategoryEmployees(role)
       setEmployeeDialog({ idx, role, type: row })
     } else {
-      // Direct toggle
+      // Direct toggle with optimistic update
       if (row === 'action') {
-        const next = [...forAction]; next[idx] = !next[idx]; setForAction(next)
+        const next = [...forAction]
+        next[idx] = !next[idx]
+        setForAction(next)
+        optimisticUpdate(`forAction_${idx}`, next[idx])
       } else {
-        const next = [...sendCopy]; next[idx] = !next[idx]; setSendCopy(next)
+        const next = [...sendCopy]
+        next[idx] = !next[idx]
+        setSendCopy(next)
+        optimisticUpdate(`sendCopy_${idx}`, next[idx])
       }
     }
   }
@@ -670,14 +732,87 @@ export default function SheetForm() {
     setAttachments(prev => prev.filter((_, i) => i !== idx))
   }
 
+  // Handle file selection with progress simulation
+  const handleFileSelect = async (files: FileList) => {
+    const fileArray = Array.from(files)
+    setIsUploading(true)
+    
+    // Add files to attachments immediately (optimistic UI)
+    setAttachments(prev => [...prev, ...fileArray])
+    
+    // Simulate upload progress for each file
+    for (const file of fileArray) {
+      const fileKey = `${file.name}-${file.size}-${Date.now()}`
+      
+      // Simulate progress from 0 to 100
+      for (let progress = 0; progress <= 100; progress += 10) {
+        setUploadingFiles(prev => new Map(prev).set(fileKey, progress))
+        await new Promise(resolve => setTimeout(resolve, 50)) // 50ms delay per step
+      }
+      
+      // Remove from uploading map when complete
+      setUploadingFiles(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(fileKey)
+        return newMap
+      })
+    }
+    
+    setIsUploading(false)
+    message.success(`${fileArray.length} file(s) attached successfully!`)
+  }
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      handleFileSelect(files)
+    }
+  }, [])
+
+  // Add drag and drop to the attachment panel
+  const attachmentPanelProps = {
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
+  }
+
   return (
     <div className="page-container fade-in" style={{ paddingTop: 16 }}>
       {/* Nav */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}
           style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
           ← Dashboard
         </Button>
+        {isEdit && isSyncing && (
+          <span style={{ fontSize: '0.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              background: '#3b82f6',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }} />
+            Saving...
+          </span>
+        )}
       </div>
 
       <div className="sheet-form">
@@ -696,15 +831,22 @@ export default function SheetForm() {
         {/* ═══ ROW 3: Document Type ═══ */}
         <div className="doc-type-row">
           {[
-            { label: 'LETTER', val: isLetter, set: setIsLetter },
-            { label: 'FAX', val: isFax, set: setIsFax },
-            { label: 'COPY', val: isCopy, set: setIsCopy },
-            { label: 'E.MAIL', val: isEmail, set: setIsEmail },
+            { label: 'LETTER', val: isLetter, set: setIsLetter, field: 'isLetter' },
+            { label: 'FAX', val: isFax, set: setIsFax, field: 'isFax' },
+            { label: 'COPY', val: isCopy, set: setIsCopy, field: 'isCopy' },
+            { label: 'E.MAIL', val: isEmail, set: setIsEmail, field: 'isEmail' },
           ].map(dt => (
             <div className="doc-type-cell" key={dt.label}>
               <label>{dt.label}</label>
-              <input type="checkbox" checked={dt.val} onChange={() => dt.set(!dt.val)}
-                style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+              <input 
+                type="checkbox" 
+                checked={dt.val} 
+                onChange={() => {
+                  dt.set(!dt.val)
+                  optimisticUpdate(dt.field, !dt.val)
+                }}
+                style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} 
+              />
             </div>
           ))}
         </div>
@@ -714,12 +856,24 @@ export default function SheetForm() {
         <div className="bi-field-row">
           <div className="bi-field">
             <span className="bi-field-label">Original To:</span>
-            <input value={originalTo} onChange={e => setOriginalTo(e.target.value)} />
+            <input 
+              value={originalTo} 
+              onChange={e => {
+                setOriginalTo(e.target.value)
+                optimisticUpdate('originalTo', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:الأصل إلى</span>
           </div>
           <div className="bi-field">
             <span className="bi-field-label">Date Received:</span>
-            <input value={dateReceived} onChange={e => setDateReceived(e.target.value)} />
+            <input 
+              value={dateReceived} 
+              onChange={e => {
+                setDateReceived(e.target.value)
+                optimisticUpdate('dateReceived', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:تاريخ الاستلام</span>
           </div>
         </div>
@@ -728,12 +882,24 @@ export default function SheetForm() {
         <div className="bi-field-row">
           <div className="bi-field">
             <span className="bi-field-label">Ref. No.:</span>
-            <input value={refNo} onChange={e => setRefNo(e.target.value)} />
+            <input 
+              value={refNo} 
+              onChange={e => {
+                setRefNo(e.target.value)
+                optimisticUpdate('refNo', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:رقم الكتاب</span>
           </div>
           <div className="bi-field">
             <span className="bi-field-label">Document Date:</span>
-            <input value={documentDate} onChange={e => setDocumentDate(e.target.value)} />
+            <input 
+              value={documentDate} 
+              onChange={e => {
+                setDocumentDate(e.target.value)
+                optimisticUpdate('documentDate', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:تاريخ الكتاب</span>
           </div>
         </div>
@@ -744,7 +910,13 @@ export default function SheetForm() {
         <div className="bi-field-row full">
           <div className="bi-field">
             <span className="bi-field-label">From:</span>
-            <input value={from} onChange={e => setFrom(e.target.value)} />
+            <input 
+              value={from} 
+              onChange={e => {
+                setFrom(e.target.value)
+                optimisticUpdate('from', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:من</span>
           </div>
         </div>
@@ -753,7 +925,13 @@ export default function SheetForm() {
         <div className="bi-field-row full">
           <div className="bi-field">
             <span className="bi-field-label">Subject:</span>
-            <input value={subject} onChange={e => setSubject(e.target.value)} />
+            <input 
+              value={subject} 
+              onChange={e => {
+                setSubject(e.target.value)
+                optimisticUpdate('subject', e.target.value)
+              }} 
+            />
             <span className="bi-field-label-ar">:الموضوع</span>
           </div>
         </div>
@@ -763,17 +941,61 @@ export default function SheetForm() {
           <label>Created By:</label>
           {['Ex.Sec', 'GM'].map(name => (
             <label key={name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>
-              <input type="radio" name="createdBy" checked={createdBy === name}
-                onChange={() => setCreatedBy(name)} style={{ accentColor: 'var(--accent)' }} />
+              <input 
+                type="radio" 
+                name="createdBy" 
+                checked={createdBy === name}
+                onChange={() => {
+                  setCreatedBy(name)
+                  optimisticUpdate('createdBy', name)
+                }} 
+                style={{ accentColor: 'var(--accent)' }} 
+              />
               {name}
             </label>
           ))}
         </div>
 
         {/* ═══ Attachments ═══ */}
-        <div className="attachment-panel">
-          <Button size="small" icon={<PaperClipOutlined />}
-            onClick={() => document.getElementById('file-input')?.click()}>Add Document</Button>
+        <div 
+          className="attachment-panel"
+          {...attachmentPanelProps}
+          style={{
+            border: isDragOver ? '2px dashed #3b82f6' : '1px solid #e5e7eb',
+            backgroundColor: isDragOver ? '#eff6ff' : 'transparent',
+            borderRadius: 8,
+            padding: isDragOver ? '16px' : '12px',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+          }}
+        >
+          {isDragOver && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: 8,
+              zIndex: 10,
+              pointerEvents: 'none',
+            }}>
+              <div style={{ textAlign: 'center', color: '#3b82f6' }}>
+                <PaperClipOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Drop files here to attach</div>
+              </div>
+            </div>
+          )}
+          
+          <Button 
+            size="small" 
+            icon={<PaperClipOutlined />}
+            loading={isUploading}
+            onClick={() => document.getElementById('file-input')?.click()}
+          >
+            {isUploading ? 'Attaching...' : 'Add Document'}
+          </Button>
           <Button size="small" danger onClick={() => { setAttachments([]); setLegacyAttachments([]) }}>Clear All</Button>
           <span className="label">
             {(attachments.length + legacyAttachments.length) === 0
@@ -781,8 +1003,51 @@ export default function SheetForm() {
               : `${attachments.length + legacyAttachments.length} file(s) attached`}
           </span>
           <input id="file-input" type="file" multiple style={{ display: 'none' }}
-            onChange={e => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
+            onChange={e => { 
+              if (e.target.files && e.target.files.length > 0) {
+                handleFileSelect(e.target.files)
+                e.target.value = '' // Reset input
+              }
+            }} />
         </div>
+
+        {/* ═══ Upload Progress ═══ */}
+        {uploadingFiles.size > 0 && (
+          <div style={{ 
+            padding: '12px 16px', 
+            background: '#f8fafc', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: 8, 
+            marginBottom: 12 
+          }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: '#475569' }}>
+              📎 Attaching Files...
+            </div>
+            {Array.from(uploadingFiles.entries()).map(([fileKey, progress]) => (
+              <div key={fileKey} style={{ marginBottom: 8 }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: 4 
+                }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {fileKey.split('-')[0]} {/* Extract filename */}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {progress}%
+                  </span>
+                </div>
+                <Progress 
+                  percent={progress} 
+                  size="small" 
+                  strokeColor="#3b82f6"
+                  showInfo={false}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ═══ Legacy Attached Documents (from saved attachments) ═══ */}
         {legacyAttachments.length > 0 && (
@@ -840,39 +1105,63 @@ export default function SheetForm() {
         {/* ═══ New Attached Files List ═══ */}
         {attachments.length > 0 && (
           <div className="attached-files-list">
-            {attachments.map((file, idx) => (
-              <div className="attached-file-item" key={`${file.name}-${idx}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileOutlined style={{ color: '#2563eb', fontSize: 14 }} />
-                  <a href="#" onClick={(e) => { e.preventDefault(); window.open(URL.createObjectURL(file), '_blank') }}
-                    style={{ fontSize: 12, fontWeight: 500, color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}
-                    onMouseOver={ev => (ev.currentTarget.style.textDecoration = 'underline')}
-                    onMouseOut={ev => (ev.currentTarget.style.textDecoration = 'none')}>
-                    {file.name}
-                  </a>
-                  <span style={{ fontSize: 10, color: '#888' }}>
-                    ({(file.size / 1024).toFixed(1)} KB)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <Tooltip title="View file">
-                    <Button type="text" size="small" icon={<EyeOutlined />}
-                      onClick={() => {
-                        const url = URL.createObjectURL(file)
-                        window.open(url, '_blank')
+            {attachments.map((file, idx) => {
+              const fileKey = `${file.name}-${file.size}`
+              const isCurrentlyUploading = Array.from(uploadingFiles.keys()).some(key => key.startsWith(fileKey))
+              
+              return (
+                <div className="attached-file-item" key={`${file.name}-${idx}`}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <FileOutlined style={{ 
+                      color: isCurrentlyUploading ? '#f59e0b' : '#2563eb', 
+                      fontSize: 14 
+                    }} />
+                    <a href="#" onClick={(e) => { e.preventDefault(); window.open(URL.createObjectURL(file), '_blank') }}
+                      style={{ 
+                        fontSize: 12, 
+                        fontWeight: 500, 
+                        color: isCurrentlyUploading ? '#f59e0b' : '#2563eb', 
+                        textDecoration: 'none', 
+                        cursor: 'pointer' 
                       }}
-                      style={{ fontSize: 11, color: '#2563eb' }}
-                    />
-                  </Tooltip>
-                  <Tooltip title="Remove">
-                    <Button type="text" size="small" danger icon={<CloseCircleOutlined />}
-                      onClick={() => handleRemoveAttachment(idx)}
-                      style={{ fontSize: 11 }}
-                    />
-                  </Tooltip>
+                      onMouseOver={ev => (ev.currentTarget.style.textDecoration = 'underline')}
+                      onMouseOut={ev => (ev.currentTarget.style.textDecoration = 'none')}>
+                      {file.name}
+                    </a>
+                    <span style={{ fontSize: 10, color: '#888' }}>
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                    {isCurrentlyUploading && (
+                      <Tag color="orange" style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px' }}>
+                        Attaching...
+                      </Tag>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <Tooltip title="View file">
+                      <Button type="text" size="small" icon={<EyeOutlined />}
+                        onClick={() => {
+                          const url = URL.createObjectURL(file)
+                          window.open(url, '_blank')
+                        }}
+                        style={{ fontSize: 11, color: '#2563eb' }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Remove">
+                      <Button 
+                        type="text" 
+                        size="small" 
+                        danger 
+                        icon={<CloseCircleOutlined />}
+                        onClick={() => handleRemoveAttachment(idx)}
+                        style={{ fontSize: 11 }}
+                        disabled={isCurrentlyUploading}
+                      />
+                    </Tooltip>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -882,7 +1171,7 @@ export default function SheetForm() {
             <div className="attached-file-item">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileOutlined style={{ color: '#800000', fontSize: 14 }} />
-                <a href={projectsApi.serveFileUrl(currentSheet.pdfPath!)} target="_blank" rel="noopener noreferrer"
+                <a href={sheetsApi.fileUrl(currentSheet.pdfPath!)} target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 12, fontWeight: 600, color: '#800000', textDecoration: 'none', cursor: 'pointer' }}
                   onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
                   onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}>
@@ -995,7 +1284,10 @@ export default function SheetForm() {
           </div>
           <textarea
             value={response}
-            onChange={e => setResponse(e.target.value)}
+            onChange={e => {
+              setResponse(e.target.value)
+              optimisticUpdate('response', e.target.value)
+            }}
             placeholder="Enter response..."
           />
         </div>

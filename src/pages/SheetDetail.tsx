@@ -28,7 +28,7 @@ import {
   HistoryOutlined,
 } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
-import { projectsApi } from '../api/client'
+import { projectsApi, sheetsApi } from '../api/client'
 import dayjs from 'dayjs'
 
 const { TextArea } = Input
@@ -68,6 +68,21 @@ export default function SheetDetail() {
   const isLocked = !!sheet.overriddenBy
   const recipientCount = Object.keys(sheet.assignedTo || {}).length
   const responseCount = Object.keys(sheet.responses || {}).length
+
+  // Helper: Check if all recipients are info-only
+  const isInformationalOnly = () => {
+    const types = sheet.recipientTypes || {}
+    const typeValues = Object.values(types)
+    return typeValues.length > 0 && typeValues.every(t => t === 'INFO')
+  }
+
+  // Helper: Get display status
+  const getDisplayStatus = () => {
+    if (isInformationalOnly() && sheet.status !== 'DRAFT') {
+      return 'INFORMATIONAL ONLY'
+    }
+    return sheet.status
+  }
 
   const handleSend = async () => {
     if (!id) return
@@ -235,7 +250,7 @@ export default function SheetDetail() {
               icon={<FilePdfOutlined />}
               size="large"
               onClick={() => {
-                const url = projectsApi.serveFileUrl(sheet.pdfPath!)
+                const url = sheetsApi.fileUrl(sheet.pdfPath!)
                 window.open(url, '_blank')
               }}
               style={{ height: 40, color: '#fff', background: '#2563eb', borderColor: '#2563eb' }}
@@ -276,23 +291,40 @@ export default function SheetDetail() {
         <Card>
           <Descriptions column={2} labelStyle={{ color: 'var(--text-secondary)' }}>
             <Descriptions.Item label="Status">
-              <Tag
-                style={{
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  padding: '2px 12px',
-                  border: 'none',
-                  background: sheet.status === 'DRAFT' ? 'rgba(100,116,139,0.15)' : 'rgba(99,102,241,0.15)',
-                  color: sheet.status === 'DRAFT' ? '#94a3b8' : '#818cf8',
-                }}
-              >
-                {sheet.status}
-              </Tag>
-              {isLocked && (
-                <Tooltip title={`Locked by ${sheet.overriddenBy}: ${sheet.overrideNote || ''}`}>
-                  <span style={{ marginLeft: 8, cursor: 'help' }}>🔒</span>
-                </Tooltip>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Tag
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    padding: '2px 12px',
+                    border: 'none',
+                    background: getDisplayStatus() === 'DRAFT' ? 'rgba(100,116,139,0.15)' : 
+                               getDisplayStatus() === 'INFORMATIONAL ONLY' ? 'rgba(156,163,175,0.15)' : 
+                               'rgba(99,102,241,0.15)',
+                    color: getDisplayStatus() === 'DRAFT' ? '#94a3b8' : 
+                           getDisplayStatus() === 'INFORMATIONAL ONLY' ? '#6b7280' : 
+                           '#818cf8',
+                  }}
+                >
+                  {getDisplayStatus()}
+                </Tag>
+                {isGM && !isDraft && (
+                  <Tooltip title="Change Status (GM)">
+                    <Button 
+                      type="text" 
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => setOverrideModal(true)}
+                      style={{ padding: '0 4px', height: 24, fontSize: 12 }}
+                    />
+                  </Tooltip>
+                )}
+                {isLocked && (
+                  <Tooltip title={`Locked by ${sheet.overriddenBy}: ${sheet.overrideNote || ''}`}>
+                    <span style={{ cursor: 'help' }}>🔒</span>
+                  </Tooltip>
+                )}
+              </div>
             </Descriptions.Item>
             <Descriptions.Item label="Workflow">
               <Tag color="blue">{sheet.workflowState}</Tag>
@@ -430,11 +462,14 @@ export default function SheetDetail() {
             onChange={(v) => setOverrideData((d) => ({ ...d, status: v }))}
             placeholder="Select status..."
             options={[
+              { value: 'PENDING', label: 'PENDING' },
               { value: 'ACTION TAKEN', label: 'ACTION TAKEN' },
               { value: 'APPROVED', label: 'APPROVED' },
               { value: 'REJECTED / RETURNED', label: 'REJECTED / RETURNED' },
               { value: 'NOTED', label: 'NOTED' },
               { value: 'IN PROGRESS', label: 'IN PROGRESS' },
+              { value: 'COMPLETED', label: 'COMPLETED' },
+              { value: 'INFORMATIONAL ONLY', label: 'INFORMATIONAL ONLY' },
             ]}
           />
         </div>
