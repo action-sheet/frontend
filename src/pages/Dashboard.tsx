@@ -32,7 +32,7 @@ function StatusPill({ status }: { status: string }) {
     'ACTION TAKEN': 'success', 'APPROVED': 'success', 'NOTED': 'info', 'COMPLETED': 'success',
     'PENDING': 'warning', 'DRAFT': 'draft-pulse', 'IN PROGRESS': 'accent',
     'REJECTED / RETURNED': 'danger', 'REVIEW REQUESTED': 'warning', 
-    'INFORMATIONAL ONLY': 'info', 'INFORMATIONAL ONLY': 'muted',
+    'INFORMATIONAL ONLY': 'muted',
   }
   return <span className={`status-pill status-pill--${map[status] || 'muted'}`}>{status || 'UNKNOWN'}</span>
 }

@@ -343,7 +343,7 @@ export default function SheetForm() {
 
   // ── Optimistic UI State Management ──
   const pendingUpdatesRef = useRef<Record<string, any>>({})
-  const updateTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const updateTimerRef = useRef<number | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
   // ── Form Fields (matching legacy exactly) ──
@@ -393,11 +393,11 @@ export default function SheetForm() {
 
     // Clear existing timer
     if (updateTimerRef.current) {
-      clearTimeout(updateTimerRef.current)
+      window.clearTimeout(updateTimerRef.current)
     }
 
     // Set new timer to batch send after 500ms of inactivity
-    updateTimerRef.current = setTimeout(async () => {
+    updateTimerRef.current = window.setTimeout(async () => {
       if (Object.keys(pendingUpdatesRef.current).length === 0) return
 
       const updates = { ...pendingUpdatesRef.current }
@@ -420,7 +420,7 @@ export default function SheetForm() {
   useEffect(() => {
     return () => {
       if (updateTimerRef.current) {
-        clearTimeout(updateTimerRef.current)
+        window.clearTimeout(updateTimerRef.current)
       }
     }
   }, [])
