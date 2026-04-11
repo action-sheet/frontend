@@ -224,11 +224,12 @@ export default function Dashboard() {
       render: (status: string, r) => {
         const displayStatus = getDisplayStatus(r)
         const isGM = user?.role?.toLowerCase() === 'gm' || user?.role?.toLowerCase() === 'general manager'
+        const isDraftOrInfoOnly = r.status === 'DRAFT' || displayStatus === 'INFORMATIONAL ONLY'
         return (
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <StatusPill status={displayStatus} />
             {r.overriddenBy && <Tooltip title={`Locked by GM: ${r.overriddenBy}`}><span style={{cursor:'help'}}>🔒</span></Tooltip>}
-            {isGM && r.status !== 'DRAFT' && (
+            {isGM && !isDraftOrInfoOnly && (
               <Tooltip title="Change Status (GM)">
                 <Button 
                   type="text" 
@@ -296,8 +297,7 @@ export default function Dashboard() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (r.pdfPath) {
-                    // Use the sheets API fileUrl method for proper PDF access
-                    const url = sheetsApi.fileUrl(r.pdfPath)
+                    const url = projectsApi.serveFileUrl(r.pdfPath)
                     window.open(url, '_blank')
                   } else {
                     navigate(`/sheet/${r.id}`)
@@ -313,7 +313,7 @@ export default function Dashboard() {
                   style={{ fontWeight: 600, fontSize: '0.75rem' }}
                   onClick={(e) => {
                     e.stopPropagation()
-                    const url = sheetsApi.fileUrl(r.pdfPath!)
+                    const url = projectsApi.serveFileUrl(r.pdfPath!)
                     window.open(url, '_blank')
                   }}
                 />
@@ -322,7 +322,7 @@ export default function Dashboard() {
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
               { key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) },
-              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(sheetsApi.fileUrl(r.pdfPath!), '_blank') }] : []),
+              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(projectsApi.serveFileUrl(r.pdfPath!), '_blank') }] : []),
               { type:'divider' as const },
               { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) },
             ]}} trigger={['click']}>

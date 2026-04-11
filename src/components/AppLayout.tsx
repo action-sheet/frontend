@@ -14,6 +14,7 @@ import {
   FolderOpenOutlined,
   AppstoreOutlined,
   FileTextOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 import { projectsApi } from '../api/client'
@@ -93,6 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ...(isAdmin ? [
       { type: 'divider' as const },
       { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
+      { key: '/admin/trash', icon: <DeleteOutlined />, label: 'Trash' },
       { key: '/admin/draft-recovery', icon: <FileTextOutlined />, label: 'Draft Recovery' },
     ] : []),
   ]

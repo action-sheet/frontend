@@ -13,6 +13,7 @@ import PrintView from './pages/PrintView'
 import DraftRecovery from './pages/DraftRecovery'
 import Settings from './pages/Settings'
 import Projects from './pages/Projects'
+import Trash from './pages/Trash'
 import './index.css'
 
 function AuthenticatedApp() {
@@ -34,6 +35,7 @@ function AuthenticatedApp() {
             <Route path="/projects" element={<Projects />} />
             <Route path="/repository" element={<Repository />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/trash" element={<Trash />} />
             <Route path="/admin/draft-recovery" element={<DraftRecovery />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
