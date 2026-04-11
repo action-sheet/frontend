@@ -85,11 +85,41 @@ export const sheetsApi = {
   fileUrl: (fileName: string) =>
     `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
 
-  // Helper to get PDF URL from pdfPath (extracts filename from full path)
+  // Helper to open PDF in new tab (bypasses ngrok warning)
+  openPdf: async (pdfPath: string) => {
+    try {
+      const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
+      
+      // Fetch with ngrok header
+      const response = await fetch(url, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to load PDF')
+      }
+      
+      // Get the PDF as blob
+      const blob = await response.blob()
+      
+      // Create object URL and open in new tab
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank')
+      
+      // Clean up the blob URL after a delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+    } catch (error) {
+      console.error('Failed to open PDF:', error)
+      // Fallback: try opening directly
+      window.open(`${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`, '_blank')
+    }
+  },
+
+  // Helper to get PDF URL from pdfPath
   pdfUrl: (pdfPath: string) => {
-    // Extract filename from path (handles both Windows and Unix paths)
-    const fileName = pdfPath.split(/[/\\]/).pop() || pdfPath
-    return `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`
+    return `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
   },
 
   // Attachment management

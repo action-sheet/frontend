@@ -297,8 +297,7 @@ export default function Dashboard() {
                 onClick={(e) => {
                   e.stopPropagation()
                   if (r.pdfPath) {
-                    const url = sheetsApi.pdfUrl(r.pdfPath)
-                    window.open(url, '_blank')
+                    sheetsApi.openPdf(r.pdfPath)
                   } else {
                     navigate(`/sheet/${r.id}`)
                   }
@@ -313,8 +312,7 @@ export default function Dashboard() {
                   style={{ fontWeight: 600, fontSize: '0.75rem' }}
                   onClick={(e) => {
                     e.stopPropagation()
-                    const url = sheetsApi.pdfUrl(r.pdfPath!)
-                    window.open(url, '_blank')
+                    sheetsApi.openPdf(r.pdfPath!)
                   }}
                 />
               </Tooltip>
@@ -322,7 +320,7 @@ export default function Dashboard() {
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
               { key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) },
-              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => window.open(sheetsApi.pdfUrl(r.pdfPath!), '_blank') }] : []),
+              ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => sheetsApi.openPdf(r.pdfPath!) }] : []),
               { type:'divider' as const },
               { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) },
             ]}} trigger={['click']}>

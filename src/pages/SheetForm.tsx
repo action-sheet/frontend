@@ -1171,7 +1171,14 @@ export default function SheetForm() {
             <div className="attached-file-item">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileOutlined style={{ color: '#800000', fontSize: 14 }} />
-                <a href={sheetsApi.pdfUrl(currentSheet.pdfPath!)} target="_blank" rel="noopener noreferrer"
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    sheetsApi.openPdf(currentSheet.pdfPath!)
+                  }}
+                  target="_blank" 
+                  rel="noopener noreferrer"
                   style={{ fontSize: 12, fontWeight: 600, color: '#800000', textDecoration: 'none', cursor: 'pointer' }}
                   onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
                   onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}>
