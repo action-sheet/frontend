@@ -81,6 +81,24 @@ export const sheetsApi = {
 
   fileUrl: (fileName: string) =>
     `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
+
+  // Attachment management
+  uploadAttachments: (sheetId: string, files: File[]) => {
+    const formData = new FormData()
+    files.forEach(f => formData.append('files', f))
+    return api.post(`/api/sheets/${sheetId}/attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
+  listAttachments: (sheetId: string) =>
+    api.get(`/api/sheets/${sheetId}/attachments`),
+
+  downloadAttachment: (sheetId: string, fileName: string) =>
+    `${API_BASE}/api/sheets/${sheetId}/attachments/${encodeURIComponent(fileName)}`,
+
+  deleteAttachment: (sheetId: string, fileName: string) =>
+    api.delete(`/api/sheets/${sheetId}/attachments/${encodeURIComponent(fileName)}`),
 };
 
 // ========== Auth API ==========

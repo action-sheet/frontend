@@ -382,6 +382,24 @@ export default function SheetForm() {
     if (id) fetchSheet(id)
   }, [id, fetchSheet])
 
+  // Load attachments when sheet is loaded
+  useEffect(() => {
+    const loadAttachments = async () => {
+      if (isEdit && id) {
+        try {
+          const result = await sheetsApi.listAttachments(id)
+          if (result.data.attachments && result.data.attachments.length > 0) {
+            setLegacyAttachments(result.data.attachments)
+          }
+        } catch (error) {
+          console.error('Failed to load attachments:', error)
+        }
+      }
+    }
+    
+    loadAttachments()
+  }, [isEdit, id])
+
   useEffect(() => {
     if (isEdit && currentSheet) {
       const fd = currentSheet.formData || {}
@@ -423,15 +441,7 @@ export default function SheetForm() {
       })
       setEmpSelections(restored)
 
-      // Load legacy attachments (stored as filenames in formData)
-      if (fd.attachments) {
-        const att = fd.attachments
-        if (Array.isArray(att)) {
-          setLegacyAttachments(att.filter((a: string) => a && a.trim()))
-        } else if (typeof att === 'string' && att.trim()) {
-          setLegacyAttachments([att.trim()])
-        }
-      }
+      // Note: Attachments are now loaded separately via API in useEffect
     }
   }, [isEdit, currentSheet])
 
@@ -539,6 +549,8 @@ export default function SheetForm() {
       fd[`selected_${role}_action`] = sel.action
       fd[`selected_${role}_info`] = sel.info
     })
+    // Note: Attachments are now stored separately via AttachmentService
+    // No need to save filenames in formData anymore
     return fd
   }
 
@@ -564,14 +576,35 @@ export default function SheetForm() {
   const handleSaveDraft = async () => {
     try {
       const { assignedTo, recipientTypes } = buildRecipientMaps()
+      let sheetId = id
+      
+      // Step 1: Create or update the sheet
       if (isEdit && id) {
         await updateSheet(id, { title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
       } else {
-        await createSheet({ title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+        const result = await createSheet({ title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+        sheetId = result.id // Get the newly created sheet ID
       }
-      message.success('Draft saved!')
+      
+      // Step 2: Upload new attachments if any
+      if (attachments.length > 0 && sheetId) {
+        try {
+          const uploadResult = await sheetsApi.uploadAttachments(sheetId, attachments)
+          console.log('Uploaded attachments:', uploadResult.data)
+          message.success(`Draft saved with ${uploadResult.data.count} attachment(s)!`)
+        } catch (uploadError) {
+          console.error('Failed to upload attachments:', uploadError)
+          message.warning('Draft saved but some attachments failed to upload')
+        }
+      } else {
+        message.success('Draft saved!')
+      }
+      
       navigate('/')
-    } catch { message.error('Failed to save draft') }
+    } catch (error) {
+      console.error('Failed to save draft:', error)
+      message.error('Failed to save draft')
+    }
   }
 
   const handleSend = async () => {
@@ -586,15 +619,31 @@ export default function SheetForm() {
     message.loading({ content: 'Sending Action Sheet & Notifying Recipients...', key: 'send-progress', duration: 0 })
     
     try {
+      let sheetId = id
+      
+      // Step 1: Create or update the sheet
       if (isEdit && id) {
         await updateSheet(id, { title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
       } else {
-        await createSheet({ title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+        const result = await createSheet({ title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+        sheetId = result.id
       }
+      
+      // Step 2: Upload attachments if any
+      if (attachments.length > 0 && sheetId) {
+        try {
+          await sheetsApi.uploadAttachments(sheetId, attachments)
+        } catch (uploadError) {
+          console.error('Failed to upload attachments:', uploadError)
+          // Don't fail the send, just log it
+        }
+      }
+      
       message.success({ content: 'Action Sheet sent successfully!', key: 'send-progress' })
       navigate('/')
-    } catch { 
-      message.error({ content: 'Failed to send Action Sheet', key: 'send-progress' }) 
+    } catch (error) {
+      console.error('Failed to send:', error)
+      message.error({ content: 'Failed to send Action Sheet', key: 'send-progress' })
     } finally {
       setIsSending(false)
     }
@@ -735,30 +784,30 @@ export default function SheetForm() {
             onChange={e => { if (e.target.files) setAttachments(prev => [...prev, ...Array.from(e.target.files!)]) }} />
         </div>
 
-        {/* ═══ Legacy Attached Documents (from legacy system) ═══ */}
+        {/* ═══ Legacy Attached Documents (from saved attachments) ═══ */}
         {legacyAttachments.length > 0 && (
           <div className="attached-files-list">
             {legacyAttachments.map((fileName, idx) => (
               <div className="attached-file-item" key={`legacy-${idx}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FileOutlined style={{ color: '#7c3aed', fontSize: 14 }} />
-                  <a href={sheetsApi.fileUrl(fileName)} target="_blank" rel="noopener noreferrer"
+                  <a href={id ? sheetsApi.downloadAttachment(id, fileName) : '#'} target="_blank" rel="noopener noreferrer"
                     style={{ fontSize: 12, fontWeight: 500, color: '#7c3aed', textDecoration: 'none', cursor: 'pointer' }}
                     onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
                     onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}>
-                    {fileName}
+                    {fileName.includes('_') ? fileName.substring(fileName.indexOf('_') + 1) : fileName}
                   </a>
-                  <Tag color="purple" style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px' }}>Legacy</Tag>
+                  <Tag color="purple" style={{ fontSize: 9, lineHeight: '16px', padding: '0 4px' }}>Saved</Tag>
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <Tooltip title="Preview document">
                     <Button type="text" size="small" icon={<EyeOutlined />}
-                      onClick={() => window.open(sheetsApi.fileUrl(fileName), '_blank')}
+                      onClick={() => id && window.open(sheetsApi.downloadAttachment(id, fileName), '_blank')}
                       style={{ fontSize: 11, color: '#7c3aed' }}
                     />
                   </Tooltip>
                   <Tooltip title="Download">
-                    <a href={sheetsApi.fileUrl(fileName)} download={fileName} style={{ display: 'inline-flex' }}>
+                    <a href={id ? sheetsApi.downloadAttachment(id, fileName) : '#'} download={fileName.includes('_') ? fileName.substring(fileName.indexOf('_') + 1) : fileName} style={{ display: 'inline-flex' }}>
                       <Button type="text" size="small" icon={<DownloadOutlined />}
                         style={{ fontSize: 11, color: '#2563eb' }}
                       />
@@ -766,7 +815,19 @@ export default function SheetForm() {
                   </Tooltip>
                   <Tooltip title="Remove">
                     <Button type="text" size="small" danger icon={<CloseCircleOutlined />}
-                      onClick={() => setLegacyAttachments(prev => prev.filter((_, i) => i !== idx))}
+                      onClick={async () => {
+                        if (id) {
+                          try {
+                            await sheetsApi.deleteAttachment(id, fileName)
+                            setLegacyAttachments(prev => prev.filter((_, i) => i !== idx))
+                            message.success('Attachment removed')
+                          } catch {
+                            message.error('Failed to remove attachment')
+                          }
+                        } else {
+                          setLegacyAttachments(prev => prev.filter((_, i) => i !== idx))
+                        }
+                      }}
                       style={{ fontSize: 11 }}
                     />
                   </Tooltip>
