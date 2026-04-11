@@ -1,15 +1,26 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { useSheetsStore } from '../store';
 import { useAuthStore } from '../store';
 
-const WS_URL = (import.meta.env.VITE_API_URL || '') + '/ws';
+/**
+ * Build the WebSocket URL from the API base URL.
+ * Converts http(s):// to ws(s):// and points to the /ws-direct endpoint
+ * which does NOT use SockJS, avoiding ngrok interstitial CORS issues.
+ */
+function buildWsUrl(): string {
+  const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+  const wsBase = apiBase
+    .replace(/^https:\/\//, 'wss://')
+    .replace(/^http:\/\//, 'ws://');
+  return wsBase + '/ws-direct';
+}
 
 /**
  * WebSocket hook for real-time dashboard updates.
+ * Uses native WebSocket (not SockJS) for lowest latency and ngrok compatibility.
  * Only connects when a user is authenticated.
- * Resilient to connection failures â€” will silently retry.
+ * Resilient to connection failures — will silently retry.
  */
 export function useWebSocket() {
   const clientRef = useRef<Client | null>(null);
@@ -21,19 +32,24 @@ export function useWebSocket() {
     if (!user) return;
 
     try {
+      const brokerURL = buildWsUrl();
+      console.log('?? Connecting WebSocket to:', brokerURL);
+
       const client = new Client({
-        webSocketFactory: () => new SockJS(WS_URL),
-        reconnectDelay: 5000,
-        heartbeatIncoming: 10000,
-        heartbeatOutgoing: 10000,
+        brokerURL,
+        // No webSocketFactory needed — @stomp/stompjs uses native WebSocket
+        // when brokerURL is provided, which is the fastest transport.
+        reconnectDelay: 3000,       // Reconnect faster (was 5s)
+        heartbeatIncoming: 8000,    // Detect dead connections faster (was 10s)
+        heartbeatOutgoing: 8000,
 
         onConnect: () => {
-          console.log('ðŸ”Œ WebSocket connected');
+          console.log('?? WebSocket connected (native WS)');
 
           client.subscribe('/topic/sheets', (message) => {
             try {
               const event = JSON.parse(message.body);
-              console.log('ðŸ“¡ Sheet event:', event.type, event.sheetId);
+              console.log('?? Sheet event:', event.type, event.sheetId);
               fetchSheets();
 
               // Native notification for Electron desktop app
@@ -56,7 +72,7 @@ export function useWebSocket() {
         },
 
         onDisconnect: () => {
-          console.log('ðŸ”Œ WebSocket disconnected');
+          console.log('?? WebSocket disconnected');
         },
 
         onStompError: (frame) => {
@@ -64,7 +80,7 @@ export function useWebSocket() {
         },
 
         onWebSocketError: () => {
-          // Silently handle â€” will auto-reconnect
+          // Silently handle — will auto-reconnect
         },
       });
 
