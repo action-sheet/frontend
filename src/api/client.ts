@@ -90,30 +90,72 @@ export const sheetsApi = {
     try {
       const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
       
+      console.log('Fetching PDF from:', url)
+      
       // Fetch with ngrok header
       const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/pdf',
         },
       })
       
+      console.log('Response status:', response.status)
+      
       if (!response.ok) {
-        throw new Error('Failed to load PDF')
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
       
       // Get the PDF as blob
       const blob = await response.blob()
+      console.log('Blob created:', blob.size, 'bytes')
       
       // Create object URL and open in new tab
       const blobUrl = URL.createObjectURL(blob)
-      window.open(blobUrl, '_blank')
+      console.log('Opening blob URL:', blobUrl)
+      
+      const newWindow = window.open(blobUrl, '_blank')
+      
+      if (!newWindow) {
+        console.error('Popup blocked')
+        alert('Please allow popups for this site to view PDFs')
+      }
       
       // Clean up the blob URL after a delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl)
+        console.log('Blob URL revoked')
+      }, 1000)
     } catch (error) {
       console.error('Failed to open PDF:', error)
-      // Fallback: try opening directly
-      window.open(`${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`, '_blank')
+      alert(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  },
+
+  downloadPdf: async (pdfPath: string, fileName?: string) => {
+    try {
+      const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/pdf',
+        },
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = fileName || pdfPath.split('/').pop() || pdfPath.split('\\').pop() || 'document.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      alert(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   },
 

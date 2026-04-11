@@ -1188,10 +1188,7 @@ export default function SheetForm() {
               <div style={{ display: 'flex', gap: 4 }}>
                 <Tooltip title="Open PDF">
                   <Button type="primary" size="small" icon={<EyeOutlined />}
-                    onClick={() => {
-                      const url = `/api/projects/serve-file?path=${encodeURIComponent(currentSheet.pdfPath!)}`
-                      window.open(url, '_blank')
-                    }}
+                    onClick={() => sheetsApi.openPdf(currentSheet.pdfPath!)}
                     style={{ fontSize: 11, background: '#800000', borderColor: '#800000' }}
                   >
                     View
@@ -1199,13 +1196,7 @@ export default function SheetForm() {
                 </Tooltip>
                 <Tooltip title="Download PDF">
                   <Button size="small" icon={<DownloadOutlined />}
-                    onClick={() => {
-                      const url = `/api/projects/serve-file?path=${encodeURIComponent(currentSheet.pdfPath!)}`
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = currentSheet.pdfPath!.split('/').pop() || 'ActionSheet.pdf'
-                      a.click()
-                    }}
+                    onClick={() => sheetsApi.downloadPdf(currentSheet.pdfPath!)}
                     style={{ fontSize: 11 }}
                   >
                     Download
