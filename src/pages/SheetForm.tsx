@@ -31,7 +31,7 @@ const COPY_TO_LABELS = [
 
 const HEADER_NAMES = [
   'General\nManager', 'Deputy\nGM', 'Executive\nManagers', 'Accounts',
-  'PM / PE', 'Mgt.\nConsultant', 'Legal\nAdvisor', 'Operations\nManager',
+  'Project Managers /\nEngineers', 'Management\nConsultant', 'Legal\nAdvisor', 'Operations\nManager',
   'Electro\nMechanical', 'Planning\nEngineer', 'Others',
 ]
 
@@ -867,18 +867,7 @@ export default function SheetForm() {
           </div>
 
           {/* Informational Only toggle */}
-          <div style={{ padding: '6px 12px', background: '#fefaf5', borderBottom: '1px solid var(--border)',
-            display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input type="checkbox" checked={informationalOnly}
-              onChange={() => {
-                setInformationalOnly(!informationalOnly)
-                if (!informationalOnly) setForAction(new Array(11).fill(false))
-              }}
-              style={{ accentColor: 'var(--warning)' }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--warning)' }}>
-              ⚠ INFORMATIONAL ONLY — disable all "For Action"
-            </span>
-          </div>
+
 
           <div className="copy-to-grid">
             {/* Header row */}

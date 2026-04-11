@@ -35,14 +35,19 @@ export default function Projects() {
     setSheetsLoading(true)
     try {
       const res = await sheetsApi.getAll()
-      const projName = p.name.toLowerCase().replace(/[\s\-]+/g, '')
+      // Normalize to lowercase alpha-only for fuzzy matching
+      const normalize = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const projNorm = normalize(p.name)
       const filtered = (res.data || []).filter((s: any) => {
-        // Match by exact projectId first
+        // 1. Exact projectId match
         if (s.projectId === p.id) return true
-        // Fallback: match by project name in the originalTo field or in the sheet ID prefix
-        const sheetIdNorm = (s.id || '').toLowerCase().replace(/[\s\-]+/g, '')
-        const originalTo = ((s.formData?.originalTo) || '').toLowerCase().replace(/[\s\-]+/g, '')
-        return sheetIdNorm.startsWith(projName) || originalTo.includes(projName)
+        // 2. Sheet ID starts with normalized project name (e.g. MERCEDESSHUWAIKH-... → mercedesshuwaikh)
+        const idNorm = normalize(s.id)
+        if (projNorm.length >= 3 && idNorm.startsWith(projNorm)) return true
+        // 3. originalTo field contains the project name
+        const origNorm = normalize(s.formData?.originalTo)
+        if (projNorm.length >= 3 && origNorm.includes(projNorm)) return true
+        return false
       })
       setSheets(filtered)
     } catch { message.error('Failed to load sheets') }

@@ -234,7 +234,7 @@ export default function SheetDetail() {
               icon={<FilePdfOutlined />}
               size="large"
               onClick={() => window.open(`/api/sheets/${id}/pdf`, '_blank')}
-              style={{ height: 40, color: '#e53e3e' }}
+              style={{ height: 40, color: '#fff', background: '#2563eb', borderColor: '#2563eb' }}
             >
               View PDF
             </Button>

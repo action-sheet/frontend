@@ -84,13 +84,13 @@ export default function DraftRecovery() {
     Modal.confirm({
       title: 'Delete Snapshot?',
       icon: <ExclamationCircleOutlined />,
-      content: 'This snapshot will be permanently removed from the recovery drive. This cannot be undone.',
+      content: 'This saved draft will be permanently removed. This cannot be undone.',
       okText: 'Delete',
       okType: 'danger',
       onOk: async () => {
         try {
           await draftRecoveryApi.deleteSnapshot(fileName)
-          message.success('Snapshot deleted')
+          message.success('Draft removed')
           loadSnapshots()
         } catch {
           message.error('Failed to delete snapshot')
@@ -144,9 +144,9 @@ export default function DraftRecovery() {
       },
     },
     {
-      title: 'Snapshot Date',
+      title: 'Saved Date',
       dataIndex: 'snapshotTimestamp',
-      key: 'snapshot',
+      key: 'saved',
       width: 170,
       render: (d: string) => d ? dayjs(d).format('DD MMM YYYY, HH:mm') : '—',
     },
@@ -168,7 +168,7 @@ export default function DraftRecovery() {
               Restore
             </Button>
           </Tooltip>
-          <Tooltip title="Delete snapshot permanently">
+          <Tooltip title="Delete this saved draft permanently">
             <Button
               size="small"
               danger
@@ -191,7 +191,7 @@ export default function DraftRecovery() {
             Draft Recovery
           </h2>
           <p style={{ margin: '4px 0 0', color: '#888', fontSize: 13 }}>
-            Recover lost or deleted draft sheets from automatic network drive snapshots.
+            Recover previously saved draft action sheets. Drafts are stored automatically and cleared once sent.
           </p>
         </div>
       </div>
@@ -207,9 +207,9 @@ export default function DraftRecovery() {
           columns={columns}
           rowKey="fileName"
           loading={loading}
-          pagination={{ pageSize: 20, showTotal: t => <span style={{ color: '#888' }}>{t} snapshots</span> }}
+          pagination={{ pageSize: 20, showTotal: t => <span style={{ color: '#888' }}>{t} saved drafts</span> }}
           size="middle"
-          locale={{ emptyText: 'No draft snapshots found on the network drive.' }}
+          locale={{ emptyText: 'No saved drafts found.' }}
         />
       </div>
     </div>

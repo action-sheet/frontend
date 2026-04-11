@@ -13,6 +13,7 @@ import {
   MenuUnfoldOutlined,
   FolderOpenOutlined,
   AppstoreOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 import { projectsApi } from '../api/client'
@@ -77,6 +78,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
 
+  const isAdmin = user?.role?.toLowerCase() === 'admin'
+
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
     {
@@ -89,6 +92,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
     { key: '/projects', icon: <ProjectOutlined />, label: `Projects (${projects.length})` },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
+    ...(isAdmin ? [
+      { type: 'divider' as const },
+      { key: '/admin/draft-recovery', icon: <FileTextOutlined />, label: 'Draft Recovery' },
+    ] : []),
   ]
 
   const userMenuItems = [
