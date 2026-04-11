@@ -90,7 +90,62 @@ export const sheetsApi = {
     // Dynamic import of message to avoid circular dependency
     const { message } = await import('antd')
     
-    // Show loading message
+    // Open window immediately (before async fetch) to avoid popup blocker
+    const newWindow = window.open('about:blank', '_blank')
+    
+    if (!newWindow) {
+      message.error('Please allow popups for this site to view PDFs')
+      return
+    }
+    
+    // Show loading message in the new window
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>Loading PDF...</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: #f5f5f5;
+            }
+            .loader {
+              text-align: center;
+            }
+            .spinner {
+              border: 4px solid #f3f3f3;
+              border-top: 4px solid #2563eb;
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 16px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .text {
+              color: #666;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="loader">
+            <div class="spinner"></div>
+            <div class="text">Fetching PDF...</div>
+          </div>
+        </body>
+      </html>
+    `)
+    
+    // Show loading message in parent window too
     const hideLoading = message.loading('Fetching PDF...', 0)
     
     try {
@@ -121,26 +176,55 @@ export const sheetsApi = {
       hideLoading()
       message.success('PDF loaded successfully', 1.5)
       
-      // Create object URL and open in new tab
+      // Create object URL and load into the already-open window
       const blobUrl = URL.createObjectURL(blob)
-      console.log('Opening blob URL:', blobUrl)
+      console.log('Loading blob URL into window:', blobUrl)
       
-      const newWindow = window.open(blobUrl, '_blank')
-      
-      if (!newWindow) {
-        console.error('Popup blocked')
-        message.error('Please allow popups for this site to view PDFs')
-      }
+      newWindow.location.href = blobUrl
       
       // Clean up the blob URL after a delay
       setTimeout(() => {
         URL.revokeObjectURL(blobUrl)
         console.log('Blob URL revoked')
-      }, 1000)
+      }, 5000) // Longer delay to ensure PDF loads
     } catch (error) {
       hideLoading()
       console.error('Failed to open PDF:', error)
       message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
+      // Show error in the new window
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>Error Loading PDF</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #fff;
+              }
+              .error {
+                max-width: 500px;
+                margin: 50px auto;
+                padding: 20px;
+                background: #fee;
+                border: 1px solid #fcc;
+                border-radius: 8px;
+              }
+              h2 { color: #c00; margin-top: 0; }
+              p { color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="error">
+              <h2>Failed to Load PDF</h2>
+              <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
+              <p><small>You can close this window.</small></p>
+            </div>
+          </body>
+        </html>
+      `)
     }
   },
 

@@ -164,12 +164,13 @@ export default function Projects() {
                     } },
                   { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
                     render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },
-                  { title: 'Actions', key: 'actions', width: 180,
+                  { title: 'Actions', key: 'actions', width: 220, fixed: 'right' as const,
                     render: (_: any, sheet: any) => (
-                      <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         <Button 
                           size="small" 
                           onClick={() => navigate(`/sheet/${sheet.id}`)}
+                          style={{ fontSize: '0.75rem', padding: '0 8px', whiteSpace: 'nowrap' }}
                         >
                           View Details
                         </Button>
@@ -178,6 +179,13 @@ export default function Projects() {
                             size="small" 
                             type="primary"
                             onClick={() => sheetsApi.openPdf(sheet.pdfPath)}
+                            style={{ 
+                              fontSize: '0.75rem', 
+                              padding: '0 8px', 
+                              whiteSpace: 'nowrap',
+                              background: '#2563eb',
+                              borderColor: '#2563eb'
+                            }}
                           >
                             View PDF
                           </Button>
