@@ -80,14 +80,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   const isAdmin = user?.role?.toLowerCase() === 'admin'
+  const isExm = user?.role?.toLowerCase() === "ex.m's"
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
-    {
+    ...(!isExm ? [{
       key: 'new-sheet-trigger',
       icon: <PlusOutlined />,
       label: 'New Sheet',
-    },
+    }] : []),
     { key: '/repository', icon: <FolderOpenOutlined />, label: 'Repository' },
     { key: '/projects', icon: <ProjectOutlined />, label: `Projects (${projects.length})` },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },

@@ -81,7 +81,7 @@ export default function Employees() {
   }
 
   const roleColor = (role: string) => {
-    const map: Record<string, string> = { admin: 'red', gm: 'gold', user: 'blue', manager: 'green' }
+    const map: Record<string, string> = { admin: 'red', gm: 'gold', user: 'blue', manager: 'green', "ex.m's": 'purple' }
     return map[role?.toLowerCase()] || 'default'
   }
 
@@ -133,6 +133,7 @@ export default function Employees() {
               { value: 'gm', label: 'General Manager (GM)' },
               { value: 'manager', label: 'Manager' },
               { value: 'user', label: 'User' },
+              { value: "EX.M's", label: "EX.M's (View Only)" },
             ]} />
           </Form.Item>
         </Form>
@@ -149,6 +150,7 @@ export default function Employees() {
               { value: 'gm', label: 'General Manager (GM)' },
               { value: 'manager', label: 'Manager' },
               { value: 'user', label: 'User' },
+              { value: "EX.M's", label: "EX.M's (View Only)" },
             ]} />
           </Form.Item>
           <Form.Item name="password" label="New Password (leave blank to keep current)"><Input.Password /></Form.Item>

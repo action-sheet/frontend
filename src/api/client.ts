@@ -90,15 +90,32 @@ export const sheetsApi = {
     // Dynamic import of message to avoid circular dependency
     const { message } = await import('antd')
     
-    // Open window immediately (before async fetch) to avoid popup blocker
-    const newWindow = window.open('about:blank', '_blank')
+    // For Electron: open a new window with a proper URL (not about:blank)
+    // about:blank triggers OS "choose app" dialog in Electron
+    const newWindow = window.open('', '_blank')
     
     if (!newWindow) {
-      message.error('Please allow popups for this site to view PDFs')
+      // Fallback: fetch and open inline in same window
+      message.info('Opening PDF...')
+      try {
+        const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'ngrok-skip-browser-warning': 'true', 'Accept': 'application/pdf' },
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const blob = await response.blob()
+        const blobUrl = URL.createObjectURL(blob)
+        window.open(blobUrl, '_blank')
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
+      } catch (error) {
+        message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
       return
     }
     
-    // Show loading message in the new window
+    // Write a loading page that doesn't use about:blank navigation
+    newWindow.document.open()
     newWindow.document.write(`
       <html>
         <head>
@@ -144,6 +161,7 @@ export const sheetsApi = {
         </body>
       </html>
     `)
+    newWindow.document.close()
     
     // Show loading message in parent window too
     const hideLoading = message.loading('Fetching PDF...', 0)
@@ -176,23 +194,34 @@ export const sheetsApi = {
       hideLoading()
       message.success('PDF loaded successfully', 1.5)
       
-      // Create object URL and load into the already-open window
+      // Create object URL and embed PDF directly in the window using an iframe
+      // This avoids about:blank navigation issues in Electron
       const blobUrl = URL.createObjectURL(blob)
       console.log('Loading blob URL into window:', blobUrl)
       
-      newWindow.location.href = blobUrl
+      newWindow.document.open()
+      newWindow.document.write(`
+        <html>
+          <head><title>PDF Viewer</title></head>
+          <body style="margin:0;padding:0;overflow:hidden;">
+            <iframe src="${blobUrl}" style="width:100%;height:100vh;border:none;" frameborder="0"></iframe>
+          </body>
+        </html>
+      `)
+      newWindow.document.close()
       
-      // Clean up the blob URL after a delay
+      // Clean up the blob URL after a long delay to ensure PDF loads
       setTimeout(() => {
         URL.revokeObjectURL(blobUrl)
         console.log('Blob URL revoked')
-      }, 5000) // Longer delay to ensure PDF loads
+      }, 60000) // 60 second delay for Electron
     } catch (error) {
       hideLoading()
       console.error('Failed to open PDF:', error)
       message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
       
       // Show error in the new window
+      newWindow.document.open()
       newWindow.document.write(`
         <html>
           <head>
@@ -225,6 +254,7 @@ export const sheetsApi = {
           </body>
         </html>
       `)
+      newWindow.document.close()
     }
   },
 
@@ -273,8 +303,12 @@ export const sheetsApi = {
   uploadAttachments: (sheetId: string, files: File[]) => {
     const formData = new FormData()
     files.forEach(f => formData.append('files', f))
+    // IMPORTANT: Do NOT set Content-Type manually — axios auto-sets it
+    // with the proper multipart boundary when FormData is passed.
+    // Setting it explicitly strips the boundary and Spring can't parse files.
     return api.post(`/api/sheets/${sheetId}/attachments`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
+      timeout: 120000, // 2 min timeout for file uploads
     })
   },
 

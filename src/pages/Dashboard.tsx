@@ -8,6 +8,7 @@ import {
   FileTextOutlined, EditOutlined, TeamOutlined, ProjectOutlined,
   SettingOutlined, PrinterOutlined,
   MoreOutlined, FilePdfOutlined, PaperClipOutlined, AppstoreOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useSheetsStore, useAuthStore, type ActionSheet } from '../store'
@@ -80,6 +81,12 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [, setSearchTerm] = useState('')
   const [initialLoad, setInitialLoad] = useState(true)
+
+  // Role checks
+  const isExm = user?.role?.toLowerCase() === "ex.m's"
+
+  // Email responses preview state
+  const [responsesPreview, setResponsesPreview] = useState<{ sheetId: string; responses: Record<string, string>; responseHistory: any[] } | null>(null)
 
   const [projects, setProjects] = useState<Project[]>([])
   const [projectSelectModal, setProjectSelectModal] = useState(false)
@@ -254,11 +261,20 @@ export default function Dashboard() {
     },
     {
       title: 'Responses', key: 'responses', width: 90, align: 'center' as const,
-      render: (_, r) => {
+      render: (_: unknown, r: ActionSheet) => {
         const total = r.recipientCount ?? Object.keys(r.assignedTo || {}).length
         const responded = r.responseCount ?? Object.keys(r.responses || {}).length
         return (
-          <div style={{ display:'flex', alignItems:'center', gap:6, justifyContent:'center' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, justifyContent:'center', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setResponsesPreview({
+                sheetId: r.id,
+                responses: r.responses || {},
+                responseHistory: r.responseHistory || [],
+              })
+            }}
+          >
             <ProgressRing responded={responded} total={total} />
             <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>/{total}</span>
           </div>
@@ -281,11 +297,11 @@ export default function Dashboard() {
     },
     {
       title: '', key: 'actions', width: 200,
-      render: (_, r) => {
+      render: (_: unknown, r: ActionSheet) => {
         const isDraft = r.workflowState === 'DRAFT' || r.status === 'DRAFT'
         return (
           <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-            {isDraft ? (
+            {isDraft && !isExm ? (
               <Button size="small" icon={<EditOutlined />}
                 style={{ background: '#fee2e2', borderColor: '#fee2e2', color: '#dc2626', fontWeight: 600, fontSize: '0.75rem' }}
                 onClick={(e) => { e.stopPropagation(); navigate(`/sheet/${r.id}/edit`) }}>
@@ -319,10 +335,9 @@ export default function Dashboard() {
             )}
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
-              { key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) },
+              ...(!isExm ? [{ key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) }] : []),
               ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => sheetsApi.openPdf(r.pdfPath!) }] : []),
-              { type:'divider' as const },
-              { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) },
+              ...(!isExm ? [{ type:'divider' as const }, { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) }] : []),
             ]}} trigger={['click']}>
               <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
             </Dropdown>
@@ -349,11 +364,13 @@ export default function Dashboard() {
             style={{ height: 40, fontWeight: 500 }}>
             Print
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} size="large"
-            onClick={handleNewSheetClick}
-            style={{ height: 40, paddingInline: 20, fontWeight: 600 }}>
-            New Action Sheet
-          </Button>
+          {!isExm && (
+            <Button type="primary" icon={<PlusOutlined />} size="large"
+              onClick={handleNewSheetClick}
+              style={{ height: 40, paddingInline: 20, fontWeight: 600 }}>
+              New Action Sheet
+            </Button>
+          )}
         </div>
       </div>
 
@@ -414,9 +431,11 @@ export default function Dashboard() {
             <div className="empty-state-icon">📋</div>
             <div className="empty-state-title">No action sheets yet</div>
             <div className="empty-state-desc">Create your first action sheet to start tracking tasks and collecting responses.</div>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleNewSheetClick} style={{ height:38, paddingInline:20 }}>
-              Create Action Sheet
-            </Button>
+            {!isExm && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleNewSheetClick} style={{ height:38, paddingInline:20 }}>
+                Create Action Sheet
+              </Button>
+            )}
           </div>
         ) : (
           <Table columns={columns} dataSource={sortedSheets} rowKey="id" loading={isLoading}
@@ -424,6 +443,11 @@ export default function Dashboard() {
             size="middle"
             onRow={r => ({
               onClick: () => {
+                if (isExm) {
+                  // EX.M's role can only view, not edit
+                  navigate(`/sheet/${r.id}`)
+                  return
+                }
                 const isDraft = r.workflowState === 'DRAFT' || r.status === 'DRAFT'
                 navigate(isDraft ? `/sheet/${r.id}/edit` : `/sheet/${r.id}`)
               },
@@ -588,6 +612,83 @@ export default function Dashboard() {
             ]}
           />
         </div>
+      </Modal>
+
+      {/* ── Email Responses Preview Modal ── */}
+      <Modal
+        title={<><HistoryOutlined /> Email Responses — {responsesPreview?.sheetId}</>}
+        open={!!responsesPreview}
+        onCancel={() => setResponsesPreview(null)}
+        footer={null}
+        width={520}
+      >
+        {responsesPreview && (() => {
+          const entries = Object.entries(responsesPreview.responses)
+          const history = responsesPreview.responseHistory || []
+          return (
+            <div>
+              {/* Quick summary */}
+              {entries.length > 0 ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Recorded Responses ({entries.length})
+                  </div>
+                  {entries.map(([email, response]) => {
+                    const isPositive = ['ACTION TAKEN', 'APPROVED', 'NOTED', 'ACKNOWLEDGED', 'COMPLETED'].includes(response)
+                    const isNegative = response.includes('REJECT')
+                    return (
+                      <div key={email} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 12px', marginBottom: 4,
+                        background: isPositive ? 'rgba(16,185,129,0.06)' : isNegative ? 'rgba(239,68,68,0.06)' : '#f9fafb',
+                        borderRadius: 6, border: '1px solid #f0f0f0',
+                      }}>
+                        <span style={{ fontSize: '0.82rem', color: '#333' }}>{email}</span>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                          color: isPositive ? '#10b981' : isNegative ? '#ef4444' : '#3b82f6',
+                          background: isPositive ? 'rgba(16,185,129,0.12)' : isNegative ? 'rgba(239,68,68,0.12)' : 'rgba(59,130,246,0.12)',
+                        }}>
+                          {response}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: '#999' }}>
+                  <ClockCircleOutlined style={{ fontSize: 28, marginBottom: 8, display: 'block' }} />
+                  No email responses recorded yet
+                </div>
+              )}
+
+              {/* Response history timeline */}
+              {history.length > 0 && (
+                <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 8 }}>
+                  <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Response Timeline
+                  </div>
+                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                    {history.map((entry: any, i: number) => (
+                      <div key={i} style={{
+                        padding: '6px 10px', marginBottom: 4,
+                        background: '#fafafa', borderRadius: 4, borderLeft: '3px solid #2563eb',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#333' }}>{entry.response}</span>
+                          <span style={{ fontSize: '0.68rem', color: '#999' }}>
+                            {entry.timestamp ? dayjs(entry.timestamp).format('DD MMM, HH:mm') : '—'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#666' }}>{entry.email}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </Modal>
     </div>
   )

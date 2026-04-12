@@ -11,6 +11,17 @@ import dayjs from 'dayjs'
 interface Project { id: string; name: string; path?: string; color?: string }
 interface Sheet { id: string; title: string; status: string; workflowState: string; createdDate: string }
 
+/* ── Status Pill ── */
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    'ACTION TAKEN': 'success', 'APPROVED': 'success', 'NOTED': 'info', 'COMPLETED': 'success',
+    'PENDING': 'warning', 'DRAFT': 'draft-pulse', 'IN PROGRESS': 'accent',
+    'REJECTED / RETURNED': 'danger', 'REVIEW REQUESTED': 'warning', 
+    'INFORMATIONAL ONLY': 'muted',
+  }
+  return <span className={`status-pill status-pill--${map[status] || 'muted'}`}>{status || 'UNKNOWN'}</span>
+}
+
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([])
   const [sheets, setSheets] = useState<Sheet[]>([])
@@ -77,18 +88,8 @@ export default function Projects() {
     })
   }
 
-  const statusColor = (s: string) => {
-    const map: Record<string, string> = {
-      DRAFT: 'orange', PENDING: 'blue', 'IN PROGRESS': 'processing',
-      'ACTION TAKEN': 'green', COMPLETED: 'green', REJECTED: 'red',
-      'INFORMATIONAL ONLY': 'default', APPROVED: 'green', NOTED: 'cyan',
-    }
-    return map[s?.toUpperCase()] || 'default'
-  }
-
   // Helper: Check if all recipients are info-only
   const isInformationalOnly = (sheet: Sheet) => {
-    // Note: Projects page might not have recipientTypes, so we'll need to check if available
     const recipientTypes = (sheet as any).recipientTypes || {}
     const typeValues = Object.values(recipientTypes)
     return typeValues.length > 0 && typeValues.every(t => t === 'INFO')
@@ -157,10 +158,10 @@ export default function Projects() {
                     render: (id: string) => <code style={{ fontSize: 11, color: '#7c3aed' }}>{id}</code> },
                   { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true,
                     render: (t: string) => <strong>{t}</strong> },
-                  { title: 'Status', dataIndex: 'status', key: 'status', width: 120,
+                  { title: 'Status', dataIndex: 'status', key: 'status', width: 160,
                     render: (_: string, sheet: Sheet) => {
                       const displayStatus = getDisplayStatus(sheet)
-                      return <Tag color={statusColor(displayStatus)}>{displayStatus}</Tag>
+                      return <StatusPill status={displayStatus} />
                     } },
                   { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
                     render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },

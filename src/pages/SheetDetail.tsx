@@ -64,6 +64,7 @@ export default function SheetDetail() {
 
   const sheet = currentSheet
   const isGM = user?.role?.toLowerCase() === 'gm' || user?.role?.toLowerCase() === 'general manager (gm)' || user?.role?.toLowerCase() === 'general manager'
+  const isExm = user?.role?.toLowerCase() === "ex.m's"
   const isDraft = sheet.workflowState === 'DRAFT'
   const isLocked = !!sheet.overriddenBy
   const recipientCount = Object.keys(sheet.assignedTo || {}).length
@@ -226,7 +227,7 @@ export default function SheetDetail() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {isDraft && (
+          {isDraft && !isExm && (
             <Button
               type="primary"
               icon={<SendOutlined />}
@@ -257,7 +258,7 @@ export default function SheetDetail() {
               View PDF
             </Button>
           )}
-          {isGM && !isLocked && (
+          {isGM && !isLocked && !isExm && (
             <Button
               icon={<LockOutlined />}
               size="large"
@@ -267,21 +268,25 @@ export default function SheetDetail() {
               GM Override
             </Button>
           )}
-          <Button
-            icon={<EditOutlined />}
-            size="large"
-            onClick={() => navigate(`/sheet/${id}/edit`)}
-            style={{ height: 40 }}
-          >
-            Edit
-          </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            size="large"
-            onClick={handleDelete}
-            style={{ height: 40 }}
-          />
+          {!isExm && (
+            <Button
+              icon={<EditOutlined />}
+              size="large"
+              onClick={() => navigate(`/sheet/${id}/edit`)}
+              style={{ height: 40 }}
+            >
+              Edit
+            </Button>
+          )}
+          {!isExm && (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              size="large"
+              onClick={handleDelete}
+              style={{ height: 40 }}
+            />
+          )}
         </div>
       </div>
 
