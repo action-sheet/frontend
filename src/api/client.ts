@@ -90,171 +90,20 @@ export const sheetsApi = {
     // Dynamic import of message to avoid circular dependency
     const { message } = await import('antd')
     
-    // For Electron: open a new window with a proper URL (not about:blank)
-    // about:blank triggers OS "choose app" dialog in Electron
-    const newWindow = window.open('', '_blank')
+    // Build direct PDF URL
+    const pdfUrl = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
     
-    if (!newWindow) {
-      // Fallback: fetch and open inline in same window
-      message.info('Opening PDF...')
-      try {
-        const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { 'ngrok-skip-browser-warning': 'true', 'Accept': 'application/pdf' },
-        })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const blob = await response.blob()
-        const blobUrl = URL.createObjectURL(blob)
-        window.open(blobUrl, '_blank')
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000)
-      } catch (error) {
-        message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      }
+    // For Electron: just open the direct URL - let the OS handle it
+    if ((window as any).electronAPI?.isElectron) {
+      window.open(pdfUrl, '_blank')
       return
     }
     
-    // Write a loading page that doesn't use about:blank navigation
-    newWindow.document.open()
-    newWindow.document.write(`
-      <html>
-        <head>
-          <title>Loading PDF...</title>
-          <style>
-            body {
-              margin: 0;
-              padding: 0;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: #f5f5f5;
-            }
-            .loader {
-              text-align: center;
-            }
-            .spinner {
-              border: 4px solid #f3f3f3;
-              border-top: 4px solid #2563eb;
-              border-radius: 50%;
-              width: 40px;
-              height: 40px;
-              animation: spin 1s linear infinite;
-              margin: 0 auto 16px;
-            }
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-            .text {
-              color: #666;
-              font-size: 14px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="loader">
-            <div class="spinner"></div>
-            <div class="text">Fetching PDF...</div>
-          </div>
-        </body>
-      </html>
-    `)
-    newWindow.document.close()
+    // For web browsers: open directly with ngrok bypass
+    const newWindow = window.open(pdfUrl, '_blank')
     
-    // Show loading message in parent window too
-    const hideLoading = message.loading('Fetching PDF...', 0)
-    
-    try {
-      const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-      
-      console.log('Fetching PDF from:', url)
-      
-      // Fetch with ngrok header
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Accept': 'application/pdf',
-        },
-      })
-      
-      console.log('Response status:', response.status)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      // Get the PDF as blob
-      const blob = await response.blob()
-      console.log('Blob created:', blob.size, 'bytes')
-      
-      // Hide loading and show success
-      hideLoading()
-      message.success('PDF loaded successfully', 1.5)
-      
-      // Create object URL and embed PDF directly in the window using an iframe
-      // This avoids about:blank navigation issues in Electron
-      const blobUrl = URL.createObjectURL(blob)
-      console.log('Loading blob URL into window:', blobUrl)
-      
-      newWindow.document.open()
-      newWindow.document.write(`
-        <html>
-          <head><title>PDF Viewer</title></head>
-          <body style="margin:0;padding:0;overflow:hidden;">
-            <iframe src="${blobUrl}" style="width:100%;height:100vh;border:none;" frameborder="0"></iframe>
-          </body>
-        </html>
-      `)
-      newWindow.document.close()
-      
-      // Clean up the blob URL after a long delay to ensure PDF loads
-      setTimeout(() => {
-        URL.revokeObjectURL(blobUrl)
-        console.log('Blob URL revoked')
-      }, 60000) // 60 second delay for Electron
-    } catch (error) {
-      hideLoading()
-      console.error('Failed to open PDF:', error)
-      message.error(`Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      
-      // Show error in the new window
-      newWindow.document.open()
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>Error Loading PDF</title>
-            <style>
-              body {
-                margin: 0;
-                padding: 20px;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #fff;
-              }
-              .error {
-                max-width: 500px;
-                margin: 50px auto;
-                padding: 20px;
-                background: #fee;
-                border: 1px solid #fcc;
-                border-radius: 8px;
-              }
-              h2 { color: #c00; margin-top: 0; }
-              p { color: #666; }
-            </style>
-          </head>
-          <body>
-            <div class="error">
-              <h2>Failed to Load PDF</h2>
-              <p>${error instanceof Error ? error.message : 'Unknown error'}</p>
-              <p><small>You can close this window.</small></p>
-            </div>
-          </body>
-        </html>
-      `)
-      newWindow.document.close()
+    if (!newWindow) {
+      message.error('Pop-up blocked. Please allow pop-ups for this site.')
     }
   },
 
