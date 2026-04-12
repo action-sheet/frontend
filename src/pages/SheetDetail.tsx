@@ -26,6 +26,9 @@ import {
   ClockCircleOutlined,
   FilePdfOutlined,
   HistoryOutlined,
+  PaperClipOutlined,
+  DownloadOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 import { useSheetsStore, useAuthStore } from '../store'
 import { projectsApi, sheetsApi } from '../api/client'
@@ -42,10 +45,32 @@ export default function SheetDetail() {
   const [overrideModal, setOverrideModal] = useState(false)
   const [overrideData, setOverrideData] = useState({ status: '', note: '' })
   const [responseLogModal, setResponseLogModal] = useState(false)
+  const [attachmentsModal, setAttachmentsModal] = useState(false)
+  const [attachments, setAttachments] = useState<string[]>([])
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
 
   useEffect(() => {
     if (id) fetchSheet(id)
   }, [id, fetchSheet])
+
+  const loadAttachments = async () => {
+    if (!id) return
+    setLoadingAttachments(true)
+    try {
+      const response = await sheetsApi.listAttachments(id)
+      setAttachments(response.data.attachments || [])
+    } catch (error) {
+      message.error('Failed to load attachments')
+      console.error(error)
+    } finally {
+      setLoadingAttachments(false)
+    }
+  }
+
+  const handleViewAttachments = () => {
+    setAttachmentsModal(true)
+    loadAttachments()
+  }
 
   if (isLoading || !currentSheet) {
     return (
@@ -245,6 +270,14 @@ export default function SheetDetail() {
             style={{ height: 40 }}
           >
             Response Log
+          </Button>
+          <Button
+            icon={<PaperClipOutlined />}
+            size="large"
+            onClick={handleViewAttachments}
+            style={{ height: 40 }}
+          >
+            View Attachments
           </Button>
           {sheet.pdfPath && (
             <Button
@@ -528,6 +561,80 @@ export default function SheetDetail() {
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
             <ClockCircleOutlined style={{ fontSize: 32, marginBottom: 12, display: 'block' }} />
             No responses recorded yet
+          </div>
+        )}
+      </Modal>
+
+      {/* Attachments Modal */}
+      <Modal
+        title={<><PaperClipOutlined /> Attached Documents</>}
+        open={attachmentsModal}
+        onCancel={() => setAttachmentsModal(false)}
+        footer={null}
+        width={700}
+      >
+        {loadingAttachments ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin />
+          </div>
+        ) : attachments.length > 0 ? (
+          <div style={{ marginTop: 16 }}>
+            {attachments.map((fileName, index) => {
+              const displayName = fileName.includes('_') ? fileName.substring(fileName.indexOf('_') + 1) : fileName
+              const downloadUrl = sheetsApi.downloadAttachment(id!, fileName)
+              
+              return (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    marginBottom: 8,
+                    background: '#f9fafb',
+                    borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                  }}
+                >
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <PaperClipOutlined style={{ fontSize: 20, color: '#6b7280' }} />
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{displayName}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        Attached document
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Tooltip title="View">
+                      <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => window.open(downloadUrl, '_blank')}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Download">
+                      <Button
+                        type="text"
+                        icon={<DownloadOutlined />}
+                        onClick={() => {
+                          const a = document.createElement('a')
+                          a.href = downloadUrl
+                          a.download = displayName
+                          a.click()
+                        }}
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+            <PaperClipOutlined style={{ fontSize: 32, marginBottom: 12, display: 'block' }} />
+            No attachments found for this action sheet
           </div>
         )}
       </Modal>
