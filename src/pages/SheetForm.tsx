@@ -41,6 +41,15 @@ const SEARCHABLE_CATEGORIES: Record<number, string> = {
   7: 'Operations Manager', 9: 'Planning Engineer', 10: 'Others',
 }
 
+// Hardcoded email mappings for non-searchable categories (from legacy system)
+const HARDCODED_EMAIL_MAPPINGS: Record<number, { email: string; name: string }> = {
+  0: { email: 'skhourshid@acg.com.kw', name: 'General Manager' }, // General Manager
+  1: { email: '', name: 'Deputy GM' }, // Deputy GM (vacant)
+  5: { email: 'raghebk@acg.com.kw', name: 'Ragheb Khourshid' }, // Management Consultant
+  6: { email: 'nqennah@acg.com.kw', name: 'Nadera Qennah' }, // Legal Advisor
+  8: { email: 'mtawfiq@acg.com.kw', name: 'M. Tawfiq' }, // Electro Mechanical
+}
+
 
 
 /* ════════════════════════════════════════
@@ -274,17 +283,46 @@ function AddEmployeeDialog({ role, onClose, onAdded }: { role: string; onClose: 
    ════════════════════════════════════════ */
 function SelectedRecipientsList({
   empSelections,
+  forAction,
+  sendCopy,
   onRemove,
   onToggleRole,
 }: {
   empSelections: Record<string, { action: Employee[]; info: Employee[] }>
+  forAction: boolean[]
+  sendCopy: boolean[]
   onRemove: (role: string, email: string) => void
   onToggleRole: (role: string, email: string, currentType: 'action' | 'info') => void
 }) {
-  const allEntries: { role: string; emp: Employee; type: 'action' | 'info' }[] = []
+  const allEntries: { role: string; emp: Employee; type: 'action' | 'info'; isHardcoded?: boolean }[] = []
+  
+  // Add employee selections from searchable categories
   Object.entries(empSelections).forEach(([role, sel]) => {
     sel.action.forEach(e => allEntries.push({ role, emp: e, type: 'action' }))
     sel.info.forEach(e => allEntries.push({ role, emp: e, type: 'info' }))
+  })
+  
+  // Add hardcoded email recipients when checkboxes are checked
+  Object.entries(HARDCODED_EMAIL_MAPPINGS).forEach(([idxStr, mapping]) => {
+    const idx = Number(idxStr)
+    if (mapping.email) { // Skip empty emails
+      const role = HEADER_NAMES[idx].replace('\n', ' ') // Get display name
+      if (forAction[idx]) {
+        allEntries.push({ 
+          role, 
+          emp: { email: mapping.email, name: mapping.name, department: '', role: '' }, 
+          type: 'action',
+          isHardcoded: true
+        })
+      } else if (sendCopy[idx]) {
+        allEntries.push({ 
+          role, 
+          emp: { email: mapping.email, name: mapping.name, department: '', role: '' }, 
+          type: 'info',
+          isHardcoded: true
+        })
+      }
+    }
   })
 
   if (allEntries.length === 0) return null
@@ -295,32 +333,50 @@ function SelectedRecipientsList({
         <span>📋 Selected Recipients ({allEntries.length})</span>
       </div>
       <div className="selected-recipients-list">
-        {allEntries.map(({ role, emp, type }) => (
+        {allEntries.map(({ role, emp, type, isHardcoded }) => (
           <div className="selected-recipient-chip" key={`${role}-${emp.email}-${type}`}>
             <div className="selected-recipient-info">
               <span className="selected-recipient-name">{emp.name}</span>
               <span className="selected-recipient-role-label">{role}</span>
+              {isHardcoded && (
+                <span style={{ fontSize: 8, background: '#f3f4f6', color: '#6b7280', padding: '0 4px', borderRadius: 3, marginLeft: 4 }}>
+                  Fixed
+                </span>
+              )}
             </div>
             <div className="selected-recipient-actions">
               <Tag color={type === 'action' ? 'red' : 'blue'} style={{ margin: 0, fontSize: 10 }}>
                 {type === 'action' ? '⚡ For Action' : 'ℹ️ For Info'}
               </Tag>
-              <Tooltip title={`Switch to ${type === 'action' ? 'Info' : 'Action'}`}>
-                <Button
-                  type="text" size="small"
-                  icon={<SwapOutlined />}
-                  onClick={() => onToggleRole(role, emp.email, type)}
-                  style={{ fontSize: 11, color: '#666' }}
-                />
-              </Tooltip>
-              <Tooltip title="Remove">
-                <Button
-                  type="text" size="small" danger
-                  icon={<CloseCircleOutlined />}
-                  onClick={() => onRemove(role, emp.email)}
-                  style={{ fontSize: 11 }}
-                />
-              </Tooltip>
+              {!isHardcoded && (
+                <>
+                  <Tooltip title={`Switch to ${type === 'action' ? 'Info' : 'Action'}`}>
+                    <Button
+                      type="text" size="small"
+                      icon={<SwapOutlined />}
+                      onClick={() => onToggleRole(role, emp.email, type)}
+                      style={{ fontSize: 11, color: '#666' }}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Remove">
+                    <Button
+                      type="text" size="small" danger
+                      icon={<CloseCircleOutlined />}
+                      onClick={() => onRemove(role, emp.email)}
+                      style={{ fontSize: 11 }}
+                    />
+                  </Tooltip>
+                </>
+              )}
+              {isHardcoded && (
+                <Tooltip title="Uncheck the checkbox to remove">
+                  <Button
+                    type="text" size="small" disabled
+                    icon={<CloseCircleOutlined />}
+                    style={{ fontSize: 11, color: '#d1d5db' }}
+                  />
+                </Tooltip>
+              )}
             </div>
           </div>
         ))}
@@ -621,6 +677,8 @@ export default function SheetForm() {
   const buildRecipientMaps = () => {
     const assignedTo: Record<string, string> = {}
     const recipientTypes: Record<string, string> = {}
+    
+    // Add employee selections from searchable categories
     Object.values(empSelections).forEach(sel => {
       sel.action.forEach(e => {
         assignedTo[e.email] = e.name
@@ -631,6 +689,24 @@ export default function SheetForm() {
         recipientTypes[e.email] = 'INFO'
       })
     })
+    
+    // Add hardcoded emails for non-searchable categories
+    Object.entries(HARDCODED_EMAIL_MAPPINGS).forEach(([idxStr, mapping]) => {
+      const idx = Number(idxStr)
+      if (mapping.email) { // Skip empty emails (like Deputy GM)
+        // Check if "For Action" checkbox is checked
+        if (forAction[idx]) {
+          assignedTo[mapping.email] = mapping.name
+          recipientTypes[mapping.email] = 'ACTION'
+        }
+        // Check if "For Information" checkbox is checked
+        else if (sendCopy[idx]) {
+          assignedTo[mapping.email] = mapping.name
+          recipientTypes[mapping.email] = 'INFO'
+        }
+      }
+    })
+    
     return { assignedTo, recipientTypes }
   }
 
@@ -1270,6 +1346,8 @@ export default function SheetForm() {
         {/* ═══ Selected Recipients Display ═══ */}
         <SelectedRecipientsList
           empSelections={empSelections}
+          forAction={forAction}
+          sendCopy={sendCopy}
           onRemove={handleRemoveRecipient}
           onToggleRole={handleToggleRecipientRole}
         />
