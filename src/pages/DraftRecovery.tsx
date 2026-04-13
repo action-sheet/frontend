@@ -182,8 +182,8 @@ export default function DraftRecovery() {
   ]
 
   return (
-    <div style={{ padding: '24px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+    <div className="page-container fade-in">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>Dashboard</Button>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1a1a1a' }}>

@@ -156,7 +156,7 @@ export default function Repository() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 16, minHeight: 'calc(100vh - 220px)' }}>
+      <div className="responsive-layout-sidebar" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 16, minHeight: 'calc(100vh - 220px)' }}>
         {/* LEFT: Calendar */}
         <div style={{
           background: 'white', border: '1px solid var(--border)', borderRadius: 10,
@@ -196,7 +196,7 @@ export default function Repository() {
           {/* Document header */}
           <div style={{
             padding: '14px 20px', borderBottom: '1px solid var(--border)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8,
           }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>

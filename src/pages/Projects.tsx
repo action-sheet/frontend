@@ -105,7 +105,7 @@ export default function Projects() {
 
   return (
     <div style={{ padding: '24px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>Dashboard</Button>
           <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
@@ -116,7 +116,7 @@ export default function Projects() {
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModal(true)}>New Project</Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, minHeight: 400 }}>
+      <div className="responsive-layout-sidebar" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, minHeight: 400 }}>
         {/* Left — Project list */}
         <div style={{ background: '#faf8f5', border: '1px solid var(--border)', borderRadius: 8, overflow: 'auto', maxHeight: 600 }}>
           {projects.map(p => (

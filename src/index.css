@@ -837,3 +837,198 @@ body {
     transform: scale(1.2);
   }
 }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS — Mobile-First Overrides
+   ══════════════════════════════════════════════════ */
+
+/* ── Utility: Responsive helpers ── */
+.responsive-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.responsive-grid-2col { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.responsive-stack { display: flex; flex-wrap: wrap; gap: 8px; }
+.copy-to-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mobile-sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+  z-index: 9; transition: opacity 0.25s var(--ease);
+}
+.mobile-sidebar-overlay.visible { display: block; }
+.hide-on-mobile { }
+.show-on-mobile { display: none !important; }
+
+/* ── <= 1366px — Small laptops ── */
+@media (max-width: 1366px) {
+  .page-container { padding: 20px 24px; }
+  .stat-card { padding: 14px 16px; }
+  .stat-value { font-size: 1.5rem; }
+  .responsive-grid-5 { grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .sheet-form { max-width: 100%; }
+}
+
+/* ── <= 1024px — Tablets ── */
+@media (max-width: 1024px) {
+  .page-container { padding: 18px 20px; }
+  .page-title { font-size: 1.3rem; }
+
+  .responsive-grid-5 { grid-template-columns: repeat(3, 1fr); }
+  .responsive-grid-2col { grid-template-columns: 1fr; }
+
+  /* Repository / Projects two-column layouts */
+  .responsive-layout-sidebar { grid-template-columns: 1fr !important; }
+  .responsive-layout-sidebar > *:first-child { max-height: 300px; }
+
+  .admin-btn-group { flex-direction: column; }
+  .admin-btn-group .ant-btn { width: 100%; justify-content: flex-start; }
+
+  /* Ant table: tighter padding */
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td { padding: 8px 10px !important; font-size: 0.68rem !important; }
+  .ant-table-tbody > tr > td { padding: 10px 10px !important; }
+
+  /* SheetDetail header buttons wrap */
+  .detail-header-actions { flex-wrap: wrap; }
+
+  /* Employee dialog */
+  .employee-dialog { width: 90vw; max-width: 500px; }
+
+  /* Settings */
+  .settings-container { max-width: 100% !important; padding: 20px !important; }
+}
+
+/* ── <= 768px — Large mobile / Small tablets ── */
+@media (max-width: 768px) {
+  .page-container { padding: 14px 16px; }
+  .page-title { font-size: 1.15rem; }
+  .page-subtitle { font-size: 0.72rem; }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header > div:last-child {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .action-bar .ant-input-search { max-width: 100% !important; width: 100% !important; }
+
+  .responsive-grid-5 { grid-template-columns: repeat(2, 1fr); }
+  .stat-card { padding: 12px 14px; }
+  .stat-value { font-size: 1.3rem; }
+  .stat-label { font-size: 0.65rem; }
+
+  /* Sheet form fields */
+  .bi-field-row { grid-template-columns: 1fr !important; }
+  .bi-field-label { min-width: 70px; font-size: 10px; }
+  .bi-field-label-ar { min-width: 65px; font-size: 10px; }
+  .bi-field input { font-size: 12px; padding: 7px 8px; }
+
+  .sheet-header { flex-direction: column; gap: 8px; text-align: center; padding: 10px 16px; }
+  .sheet-header-logo { width: 48px; height: 48px; }
+  .sheet-header-company, .sheet-header-arabic { font-size: 12px; }
+  .sheet-title-label { font-size: 14px; padding: 4px 24px; }
+
+  /* Copy-to grid scroll */
+  .copy-to-scroll-wrapper { margin: 0 -16px; padding: 0 16px; }
+  .copy-to-grid { min-width: 700px; }
+  .copy-to-grid .header-cell { font-size: 8px; min-height: 40px; padding: 4px 1px; }
+  .copy-to-grid .row-label { font-size: 9px; padding: 3px 6px; }
+  .copy-to-grid .row-label .arabic { font-size: 8px; }
+
+  .doc-type-row { flex-wrap: wrap; gap: 4px; padding: 6px 8px; }
+  .doc-type-cell { width: auto; flex: 1; min-width: 60px; }
+
+  .created-by-row { flex-wrap: wrap; gap: 12px; padding: 8px 12px; }
+
+  .form-action-bar {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .form-action-bar .ant-btn { width: 100%; }
+
+  .response-section textarea { min-height: 120px; font-size: 12px; padding: 10px; }
+
+  /* Attachment panel */
+  .attachment-panel { flex-direction: column; align-items: stretch; gap: 8px; }
+
+  /* Employee dialog — full screen */
+  .employee-dialog { width: 100vw !important; max-width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+  .employee-dialog-overlay { align-items: stretch; }
+  .employee-row { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px; }
+  .employee-checks { width: 100%; justify-content: flex-start; }
+
+  /* Selected recipients */
+  .selected-recipient-chip { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px; }
+  .selected-recipient-actions { width: 100%; justify-content: flex-start; }
+
+  /* Empty state */
+  .empty-state { padding: 36px 16px; }
+  .empty-state-icon { width: 56px; height: 56px; font-size: 22px; }
+  .empty-state-title { font-size: 0.9rem; }
+  .empty-state-desc { font-size: 0.75rem; }
+
+  .admin-panel { padding: 12px 14px; }
+  .admin-panel-title { font-size: 0.65rem; }
+
+  /* Modals */
+  .ant-modal { max-width: calc(100vw - 32px) !important; }
+  .ant-modal-content { border-radius: var(--radius-md) !important; }
+
+  /* Sidebar */
+  .hide-on-mobile { display: none !important; }
+  .show-on-mobile { display: flex !important; }
+
+  /* Ant Design table horizontal scroll */
+  .ant-table-wrapper { overflow-x: auto; }
+  .ant-table { min-width: 600px; }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td { padding: 6px 8px !important; font-size: 0.65rem !important; }
+  .ant-table-tbody > tr > td { padding: 8px 8px !important; font-size: 0.82rem; }
+
+  /* Tabs on mobile */
+  .ant-tabs-nav { margin-bottom: 12px !important; }
+  .ant-tabs-tab { padding: 6px 10px !important; font-size: 0.8rem; }
+
+  /* Descriptions — force single column */
+  .ant-descriptions-item-label { font-size: 0.75rem !important; }
+  .ant-descriptions-item-content { font-size: 0.82rem !important; }
+
+  /* Pagination compact */
+  .ant-pagination { flex-wrap: wrap; gap: 4px; }
+  .ant-pagination .ant-pagination-item { min-width: 28px; height: 28px; line-height: 28px; }
+}
+
+/* ── <= 480px — Small phones ── */
+@media (max-width: 480px) {
+  .page-container { padding: 10px 12px; }
+  .page-title { font-size: 1.05rem; }
+
+  .responsive-grid-5 { grid-template-columns: 1fr; }
+  .stat-card { padding: 10px 12px; }
+  .stat-value { font-size: 1.15rem; }
+
+  .sheet-form { border-radius: 0; border-left: none; border-right: none; }
+  .sheet-header-company, .sheet-header-arabic { font-size: 11px; }
+  .sheet-title-label { font-size: 12px; padding: 3px 16px; }
+
+  .bi-field-label { min-width: 55px; font-size: 9px; padding: 0 4px; }
+  .bi-field-label-ar { min-width: 50px; font-size: 9px; padding: 0 4px; }
+  .bi-field input { font-size: 11px; padding: 6px; }
+
+  .form-action-bar { padding: 10px 12px; }
+
+  /* Ant buttons — compact */
+  .ant-btn { font-size: 0.8rem !important; }
+  .ant-btn-sm { font-size: 0.72rem !important; padding: 0 6px !important; }
+
+  /* Login card */
+  .login-card { padding: 28px 20px !important; border-radius: 12px !important; }
+
+  /* Very small modals */
+  .ant-modal { max-width: calc(100vw - 16px) !important; margin: 8px !important; }
+}

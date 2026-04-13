@@ -46,14 +46,16 @@ export default function Login() {
       }}
     >
       <div
-        className="fade-in"
+        className="fade-in login-card"
         style={{
-          width: 400,
+          width: '100%',
+          maxWidth: 400,
           background: 'white',
           border: '1px solid var(--border)',
           borderRadius: 16,
           padding: '44px 36px',
           boxShadow: '0 8px 40px rgba(0,0,0,0.08)',
+          margin: '0 16px',
         }}
       >
         {/* Logo + Branding */}

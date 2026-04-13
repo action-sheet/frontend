@@ -66,7 +66,7 @@ function DashboardSkeleton() {
         <div><div className="skeleton" style={{ width:200, height:24 }} /><div className="skeleton skeleton-text w-short" style={{ marginTop:8 }} /></div>
         <div className="skeleton" style={{ width:140, height:40, borderRadius:6 }} />
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, marginBottom:20 }}>
+      <div className="responsive-grid-5" style={{ marginBottom:20 }}>
         {[1,2,3,4,5].map(i => <div key={i} className="skeleton skeleton-card" />)}
       </div>
       {[1,2,3,4,5].map(i => <div key={i} className="skeleton skeleton-row" />)}
@@ -389,7 +389,7 @@ export default function Dashboard() {
           </div>
 
           {/* Stat Cards */}
-          <div className="stagger" style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
+          <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
             {[
               { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
               { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },

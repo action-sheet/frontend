@@ -28,8 +28,15 @@ interface Project {
   color?: string
 }
 
+// Breakpoints
+const TABLET_BP = 1024
+const MOBILE_BP = 768
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
@@ -42,6 +49,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Project selection dialog (for New Sheet)
   const [projectSelectModal, setProjectSelectModal] = useState(false)
+
+  // Responsive detection
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth
+      const mobile = w <= MOBILE_BP
+      const tablet = w <= TABLET_BP && w > MOBILE_BP
+      setIsMobile(mobile)
+      setIsTablet(tablet)
+      if (mobile) {
+        setCollapsed(true)
+        setMobileOpen(false)
+      } else if (tablet) {
+        setCollapsed(true)
+      }
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Close mobile drawer on navigation
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false)
+  }, [location.pathname, isMobile])
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -130,14 +162,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate(key)
   }
 
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setMobileOpen(!mobileOpen)
+    } else {
+      setCollapsed(!collapsed)
+    }
+  }
+
+  // Compute sidebar metrics
+  const sidebarWidth = isMobile ? 220 : (collapsed ? 64 : 220)
+  const contentMarginLeft = isMobile ? 0 : (collapsed ? 64 : 220)
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* Mobile overlay backdrop */}
+      {isMobile && mobileOpen && (
+        <div
+          className="mobile-sidebar-overlay visible"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       <Sider
         collapsible
-        collapsed={collapsed}
+        collapsed={isMobile ? false : collapsed}
         onCollapse={setCollapsed}
         width={220}
-        collapsedWidth={64}
+        collapsedWidth={isMobile ? 0 : 64}
         trigger={null}
         style={{
           background: '#ffffff',
@@ -145,10 +197,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           overflow: 'auto',
           height: '100vh',
           position: 'fixed',
-          left: 0,
+          left: isMobile ? (mobileOpen ? 0 : -220) : 0,
           top: 0,
           bottom: 0,
-          zIndex: 10,
+          zIndex: isMobile ? 20 : 10,
+          transition: 'left 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          boxShadow: isMobile && mobileOpen ? '4px 0 20px rgba(0,0,0,0.15)' : 'none',
         }}
       >
         {/* Logo Area */}
@@ -157,8 +211,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             height: 64,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            padding: collapsed ? '0' : '0 16px',
+            justifyContent: (isMobile || !collapsed) ? 'flex-start' : 'center',
+            padding: (isMobile || !collapsed) ? '0 16px' : '0',
             borderBottom: '1px solid var(--border)',
             gap: 10,
           }}
@@ -168,7 +222,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             alt="ACG"
             style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 4 }}
           />
-          {!collapsed && (
+          {(isMobile || !collapsed) && (
             <span style={{
               fontSize: 13,
               fontWeight: 700,
@@ -190,13 +244,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         />
       </Sider>
 
-      <Layout style={{ marginLeft: collapsed ? 64 : 220, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: contentMarginLeft, transition: 'margin-left 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)' }}>
         {/* Beige Gradient Header — matches legacy */}
         <Header
           style={{
             background: 'linear-gradient(135deg, #d2bea0, #b9a587)',
             borderBottom: '1px solid #a89878',
-            padding: '0 24px',
+            padding: isMobile ? '0 12px' : '0 24px',
             height: 54,
             display: 'flex',
             alignItems: 'center',
@@ -209,40 +263,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
+              icon={collapsed && !isMobile ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={toggleSidebar}
               style={{ color: '#503820', fontSize: 16 }}
             />
-            <Button
-              type={location.pathname === '/' ? 'primary' : 'text'}
-              icon={<DashboardOutlined />}
-              onClick={() => navigate('/')}
-              style={{
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                color: location.pathname === '/' ? 'white' : '#503820',
-                background: location.pathname === '/' ? '#800000' : 'transparent',
-                borderColor: location.pathname === '/' ? '#800000' : 'transparent',
-                borderRadius: 6,
-                height: 34,
-              }}
-            >
-              Dashboard
-            </Button>
+            {!isMobile && (
+              <Button
+                type={location.pathname === '/' ? 'primary' : 'text'}
+                icon={<DashboardOutlined />}
+                onClick={() => navigate('/')}
+                style={{
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  color: location.pathname === '/' ? 'white' : '#503820',
+                  background: location.pathname === '/' ? '#800000' : 'transparent',
+                  borderColor: location.pathname === '/' ? '#800000' : 'transparent',
+                  borderRadius: 6,
+                  height: 34,
+                }}
+              >
+                Dashboard
+              </Button>
+            )}
             <div id="navbar-actions" style={{ marginLeft: 4 }}></div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
             <span className="live-dot" />
-            <span style={{ fontSize: '0.78rem', color: '#5a4030', marginRight: 12 }}>
-              Connected
-            </span>
+            {!isMobile && (
+              <span style={{ fontSize: '0.78rem', color: '#5a4030', marginRight: 12 }}>
+                Connected
+              </span>
+            )}
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
               <Button
                 type="text"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  height: 38, padding: '4px 12px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8,
+                  height: 38, padding: isMobile ? '4px 6px' : '4px 12px', borderRadius: 8,
                   color: '#3a2a18',
                 }}
               >
@@ -252,9 +310,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 >
                   {user?.name?.[0]?.toUpperCase() || 'U'}
                 </Avatar>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                  {user?.name || 'User'}
-                </span>
+                {!isMobile && (
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                    {user?.name || 'User'}
+                  </span>
+                )}
               </Button>
             </Dropdown>
           </div>
@@ -278,7 +338,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             Cancel
           </Button>,
         ]}
-        width={500}
+        width={isMobile ? '95vw' : 500}
       >
         <p style={{ color: 'var(--text-secondary)', marginBottom: 16, fontSize: '0.85rem' }}>
           Assign this Action Sheet to a project. Select a project below or proceed without one.
@@ -305,9 +365,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }}>
                 {p.name[0]?.toUpperCase() || 'P'}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.name}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.id}
                 </div>
               </div>
@@ -336,6 +396,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         onOk={handleCreateProject}
         onCancel={() => { setNewProjectModal(false); setNewProjectName('') }}
         okText="Create"
+        width={isMobile ? '95vw' : undefined}
       >
         <div style={{ marginTop: 16 }}>
           <label style={{ display: 'block', marginBottom: 6, fontSize: '0.85rem', fontWeight: 600 }}>

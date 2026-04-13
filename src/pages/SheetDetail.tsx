@@ -232,7 +232,7 @@ export default function SheetDetail() {
   return (
     <div className="page-container fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
@@ -253,7 +253,7 @@ export default function SheetDetail() {
             {sheet.id}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="detail-header-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {isDraft && !isReadOnly && (
             <Button
               type="primary"
@@ -326,7 +326,7 @@ export default function SheetDetail() {
       </div>
 
       {/* Info Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div className="responsive-grid-2col" style={{ marginBottom: 20 }}>
         <Card>
           <Descriptions column={2} labelStyle={{ color: 'var(--text-secondary)' }}>
             <Descriptions.Item label="Status">

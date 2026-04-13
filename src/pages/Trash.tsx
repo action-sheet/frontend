@@ -248,7 +248,7 @@ export default function Trash() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
             <Button
               type="text"
               icon={<ArrowLeftOutlined />}
@@ -264,7 +264,7 @@ export default function Trash() {
             {deletedSheets.length} deleted action sheet(s) · Restore or permanently delete
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {deletedSheets.length > 0 && (
             <Button
               danger

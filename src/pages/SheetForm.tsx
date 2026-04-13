@@ -872,7 +872,7 @@ export default function SheetForm() {
   return (
     <div className="page-container fade-in" style={{ paddingTop: 16 }}>
       {/* Nav */}
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}
           style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
           ← Dashboard
@@ -1293,6 +1293,7 @@ export default function SheetForm() {
           {/* Informational Only toggle */}
 
 
+          <div className="copy-to-scroll-wrapper">
           <div className="copy-to-grid">
             {/* Header row */}
             <div className="header-cell" style={{ background: 'transparent' }} />
@@ -1340,6 +1341,7 @@ export default function SheetForm() {
                   onChange={() => handleCheckboxClick(i, 'info')} />
               </div>
             ))}
+          </div>
           </div>
         </div>
 
