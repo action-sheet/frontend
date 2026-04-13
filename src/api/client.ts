@@ -85,25 +85,51 @@ export const sheetsApi = {
   fileUrl: (fileName: string) =>
     `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
 
-  // Helper to open PDF in new tab (bypasses ngrok warning)
+  // Helper to open PDF in new tab — fetches with ngrok bypass header,
+  // shows download progress, then opens via blob URL (fast + no ngrok warning)
   openPdf: async (pdfPath: string) => {
-    // Dynamic import of message to avoid circular dependency
     const { message } = await import('antd')
-    
-    // Build direct PDF URL
+
     const pdfUrl = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-    
-    // For Electron: just open the direct URL - let the OS handle it
-    if ((window as any).electronAPI?.isElectron) {
+
+    // For Electron: use fetch+blob so Electron opens it in a PDF popup window
+    // For Web: also use fetch+blob to bypass ngrok warning and show progress
+    const hideLoading = message.loading('Opening PDF...', 0)
+
+    try {
+      const response = await fetch(pdfUrl, {
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/pdf',
+        },
+      })
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+
+      hideLoading()
+
+      // Open blob URL — Electron will catch this in setWindowOpenHandler
+      // and open it in a PDF popup. Web browsers open in a new tab.
+      const newWindow = window.open(blobUrl, '_blank')
+
+      if (!newWindow) {
+        message.error('Pop-up blocked. Please allow pop-ups for this site.')
+        URL.revokeObjectURL(blobUrl)
+        return
+      }
+
+      // Clean up blob URL after a delay (let the viewer load first)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+
+    } catch (error) {
+      hideLoading()
+      console.error('Failed to open PDF:', error)
+      // Fallback: open the direct URL
       window.open(pdfUrl, '_blank')
-      return
-    }
-    
-    // For web browsers: open directly with ngrok bypass
-    const newWindow = window.open(pdfUrl, '_blank')
-    
-    if (!newWindow) {
-      message.error('Pop-up blocked. Please allow pop-ups for this site.')
     }
   },
 
