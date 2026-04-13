@@ -124,8 +124,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       label: 'New Sheet',
     }] : []),
     { key: '/repository', icon: <FolderOpenOutlined />, label: 'Repository' },
-    { key: '/projects', icon: <ProjectOutlined />, label: `Projects (${projects.length})` },
-    { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
+    // Projects dropdown in sidebar — shows all projects inline
+    {
+      key: 'projects-sub',
+      icon: <ProjectOutlined />,
+      label: `Projects (${projects.length})`,
+      children: [
+        ...projects.map(p => ({
+          key: `/projects/${encodeURIComponent(p.id)}`,
+          icon: <AppstoreOutlined />,
+          label: p.name,
+        })),
+        ...(projects.length === 0 ? [{
+          key: 'no-projects',
+          label: 'No projects yet',
+          disabled: true,
+        }] : []),
+        ...(!isReadOnly ? [{ type: 'divider' as const }, {
+          key: 'create-project-trigger',
+          icon: <PlusOutlined />,
+          label: 'Create Project',
+        }] : []),
+      ],
+    },
+    // Settings — admin only
+    ...(isAdmin ? [{ key: '/settings', icon: <SettingOutlined />, label: 'Settings' }] : []),
     ...(isAdmin ? [
       { type: 'divider' as const },
       { key: '/employees', icon: <TeamOutlined />, label: 'Manage Users' },
@@ -156,8 +179,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       handleNewSheetClick()
       return
     }
-    if (key === 'projects-trigger') {
-      return // handled by dropdown
+    if (key === 'projects-sub' || key === 'no-projects') {
+      return // parent items, no navigation
+    }
+    if (key === 'create-project-trigger') {
+      setNewProjectModal(true)
+      return
+    }
+    if (key.startsWith('/projects/')) {
+      // Navigate to project page with pre-selected project
+      navigate(key)
+      return
     }
     navigate(key)
   }

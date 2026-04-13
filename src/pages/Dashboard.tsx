@@ -123,7 +123,14 @@ export default function Dashboard() {
       icon: <ExclamationCircleOutlined />,
       content: `Are you sure you want to delete "${title}"?`,
       okText: 'Delete', okType: 'danger',
-      onOk: async () => { await deleteSheet(id, user?.email || 'unknown'); message.success('Sheet deleted') },
+      onOk: async () => {
+        await deleteSheet(id, user?.email || 'unknown')
+        message.success('Sheet deleted')
+        // If we're on the sheet detail page, navigate back to dashboard
+        if (window.location.pathname.includes(`/sheet/${id}`)) {
+          navigate('/')
+        }
+      },
     })
   }
 
@@ -217,7 +224,11 @@ export default function Dashboard() {
       title: 'Sheet', key: 'sheet',
       render: (_, r) => (
         <div>
-          <div style={{ fontWeight: 500, marginBottom: 1 }}>{r.title || r.id}</div>
+          <div style={{
+            fontWeight: 500, marginBottom: 1,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.4',
+          }}>{r.title || r.id}</div>
           <span style={{ fontFamily:'var(--font-mono)', fontSize:'0.72rem', color:'var(--text-muted)' }}>{r.id}</span>
         </div>
       ),
@@ -376,47 +387,45 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Admin Panel & Stats (Visible to Admin Only) ── */}
+      {/* ── Admin Panel (Admin Only) ── */}
       {user?.role?.toLowerCase() === 'admin' && (
-        <>
-          <div className="admin-panel">
-            <div className="admin-panel-title">⚙ Administration</div>
-            <div className="admin-btn-group">
-              <Button icon={<TeamOutlined />} onClick={() => navigate('/employees')}>Manage Users & Employees</Button>
-              <Button icon={<ProjectOutlined />} onClick={() => navigate('/projects')}>Manage Projects</Button>
-              <Button icon={<SettingOutlined />} onClick={() => navigate('/settings')}>Settings & Config</Button>
+        <div className="admin-panel">
+          <div className="admin-panel-title">⚙ Administration</div>
+          <div className="admin-btn-group">
+            <Button icon={<TeamOutlined />} onClick={() => navigate('/employees')}>Manage Users & Employees</Button>
+            <Button icon={<ProjectOutlined />} onClick={() => navigate('/projects')}>Manage Projects</Button>
+            <Button icon={<SettingOutlined />} onClick={() => navigate('/settings')}>Settings & Config</Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Stat Cards (Visible to ALL users) ── */}
+      <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
+        {[
+          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
+          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },
+          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)' },
+          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)' },
+          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)' },
+        ].map(s => (
+          <div className="stat-card fade-in-up" key={s.label}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+              <div style={{ width:32, height:32, borderRadius:6, display:'flex',
+                alignItems:'center', justifyContent:'center', fontSize:14, color:s.color,
+                background: s.color === 'var(--accent)' ? 'var(--accent-muted)' :
+                  s.color === 'var(--warning)' ? 'var(--warning-muted)' :
+                  s.color === 'var(--info)' ? 'var(--info-muted)' :
+                  s.color === 'var(--success)' ? 'var(--success-muted)' : 'var(--danger-muted)' }}>
+                {s.icon}
+              </div>
             </div>
           </div>
-
-          {/* Stat Cards */}
-          <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
-            {[
-              { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
-              { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },
-              { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)' },
-              { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)' },
-              { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)' },
-            ].map(s => (
-              <div className="stat-card fade-in-up" key={s.label}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <div>
-                    <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
-                    <div className="stat-label">{s.label}</div>
-                  </div>
-                  <div style={{ width:32, height:32, borderRadius:6, display:'flex',
-                    alignItems:'center', justifyContent:'center', fontSize:14, color:s.color,
-                    background: s.color === 'var(--accent)' ? 'var(--accent-muted)' :
-                      s.color === 'var(--warning)' ? 'var(--warning-muted)' :
-                      s.color === 'var(--info)' ? 'var(--info-muted)' :
-                      s.color === 'var(--success)' ? 'var(--success-muted)' : 'var(--danger-muted)' }}>
-                    {s.icon}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
 
       {/* Search Bar */}
       <div className="action-bar">
@@ -557,7 +566,8 @@ export default function Dashboard() {
         okButtonProps={{ disabled: printSelectedKeys.length === 0, icon: <PrinterOutlined /> }}
         onOk={() => {
           if (printSelectedKeys.length === 0) return
-          window.open(`/print?ids=${printSelectedKeys.join(',')}`, '_blank')
+          const printUrl = `${window.location.origin}/print?ids=${printSelectedKeys.join(',')}`
+          window.open(printUrl, '_blank')
           setPrintModal(false)
           setPrintSelectedKeys([])
         }}

@@ -35,6 +35,7 @@ function AuthenticatedApp() {
             <Route path="/sheet/:id/edit" element={isReadOnly ? <Navigate to="/" replace /> : <SheetForm />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:projectId" element={<Projects />} />
             <Route path="/repository" element={<Repository />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/trash" element={<Trash />} />

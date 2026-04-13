@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Table, Tag, message, Modal, Input, Form, Empty } from 'antd'
 import {
   ArrowLeftOutlined, PlusOutlined, DeleteOutlined, ProjectOutlined,
@@ -40,6 +40,16 @@ export default function Projects() {
   }, [])
 
   useEffect(() => { fetchProjects() }, [fetchProjects])
+
+  // Auto-select project from URL param (from sidebar navigation)
+  const { projectId } = useParams<{ projectId: string }>()
+  useEffect(() => {
+    if (projectId && projects.length > 0 && !selectedProject) {
+      const decodedId = decodeURIComponent(projectId)
+      const found = projects.find(p => p.id === decodedId)
+      if (found) handleSelectProject(found)
+    }
+  }, [projectId, projects])
 
   const handleSelectProject = async (p: Project) => {
     setSelectedProject(p)
