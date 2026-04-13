@@ -14,6 +14,7 @@ import DraftRecovery from './pages/DraftRecovery'
 import Settings from './pages/Settings'
 import Projects from './pages/Projects'
 import Trash from './pages/Trash'
+import EmailResponse from './pages/EmailResponse'
 import './index.css'
 
 function AuthenticatedApp() {
@@ -96,6 +97,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/respond" element={<EmailResponse />} />
               <Route path="/*" element={<AuthenticatedApp />} />
             </Routes>
           </BrowserRouter>
