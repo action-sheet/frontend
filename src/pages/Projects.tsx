@@ -44,12 +44,18 @@ export default function Projects() {
   // Auto-select project from URL param (from sidebar navigation)
   const { projectId } = useParams<{ projectId: string }>()
   useEffect(() => {
-    if (projectId && projects.length > 0 && !selectedProject) {
+    if (projectId && projects.length > 0) {
       const decodedId = decodeURIComponent(projectId)
       const found = projects.find(p => p.id === decodedId)
-      if (found) handleSelectProject(found)
+      if (found && selectedProject?.id !== found.id) {
+        handleSelectProject(found)
+      }
+    } else if (!projectId) {
+      // If we go strictly back to /projects without an ID, clear selection
+      setSelectedProject(null)
+      setSheets([])
     }
-  }, [projectId, projects])
+  }, [projectId, projects, selectedProject?.id])
 
   const handleSelectProject = async (p: Project) => {
     setSelectedProject(p)
@@ -126,90 +132,68 @@ export default function Projects() {
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddModal(true)}>New Project</Button>
       </div>
 
-      <div className="responsive-layout-sidebar" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 20, minHeight: 400 }}>
-        {/* Left — Project list */}
-        <div style={{ background: '#faf8f5', border: '1px solid var(--border)', borderRadius: 8, overflow: 'auto', maxHeight: 600 }}>
-          {projects.map(p => (
-            <div key={p.id} onClick={() => handleSelectProject(p)}
-              style={{
-                padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                background: selectedProject?.id === p.id ? '#eef2ff' : 'transparent',
-                borderLeft: selectedProject?.id === p.id ? '3px solid #2563eb' : '3px solid transparent',
-                transition: 'all 0.15s',
-              }}>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-              <div style={{ fontSize: 11, color: '#888' }}>{p.id}</div>
+      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: 24, minHeight: 400 }}>
+        {selectedProject ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.4rem' }}>
+                <FileTextOutlined style={{ marginRight: 12, color: '#2563eb' }} />{selectedProject.name}
+              </h3>
+              <Button size="middle" danger icon={<DeleteOutlined />} onClick={() => handleDelete(selectedProject)}>Delete Project</Button>
             </div>
-          ))}
-          {projects.length === 0 && !loading && (
-            <div style={{ padding: 24, textAlign: 'center', color: '#ccc' }}>No projects</div>
-          )}
-        </div>
-
-        {/* Right — Action sheets for selected project */}
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
-          {selectedProject ? (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ margin: 0, fontWeight: 600 }}>
-                  <FileTextOutlined style={{ marginRight: 8 }} />{selectedProject.name}
-                </h3>
-                <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(selectedProject)}>Delete Project</Button>
-              </div>
-              <Table
-                dataSource={sheets}
-                loading={sheetsLoading}
-                rowKey="id"
-                size="small"
-                pagination={{ pageSize: 10 }}
-                locale={{ emptyText: 'No action sheets assigned to this project.' }}
-                columns={[
-                  { title: 'ID', dataIndex: 'id', key: 'id', width: 200,
-                    render: (id: string) => <code style={{ fontSize: 11, color: '#7c3aed' }}>{id}</code> },
-                  { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true,
-                    render: (t: string) => <strong>{t}</strong> },
-                  { title: 'Status', dataIndex: 'status', key: 'status', width: 160,
-                    render: (_: string, sheet: Sheet) => {
-                      const displayStatus = getDisplayStatus(sheet)
-                      return <StatusPill status={displayStatus} />
-                    } },
-                  { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
-                    render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },
-                  { title: 'Actions', key: 'actions', width: 220, fixed: 'right' as const,
-                    render: (_: any, sheet: any) => (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+            <Table
+              dataSource={sheets}
+              loading={sheetsLoading}
+              rowKey="id"
+              size="middle"
+              pagination={{ pageSize: 15 }}
+              locale={{ emptyText: 'No action sheets assigned to this project.' }}
+              columns={[
+                { title: 'ID', dataIndex: 'id', key: 'id', width: 220,
+                  render: (id: string) => <code style={{ fontSize: 11, color: '#7c3aed' }}>{id}</code> },
+                { title: 'Title', dataIndex: 'title', key: 'title', ellipsis: true,
+                  render: (t: string) => <strong style={{ fontSize: '0.9rem' }}>{t}</strong> },
+                { title: 'Status', dataIndex: 'status', key: 'status', width: 180,
+                  render: (_: string, sheet: Sheet) => {
+                    const displayStatus = getDisplayStatus(sheet)
+                    return <StatusPill status={displayStatus} />
+                  } },
+                { title: 'Created', dataIndex: 'createdDate', key: 'date', width: 140,
+                  render: (d: string) => d ? dayjs(d).format('DD MMM YYYY') : '—' },
+                { title: 'Actions', key: 'actions', width: 220, fixed: 'right' as const,
+                  render: (_: any, sheet: any) => (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        size="small" 
+                        onClick={() => navigate(`/sheet/${sheet.id}`)}
+                        style={{ fontSize: '0.75rem', padding: '0 12px', whiteSpace: 'nowrap' }}
+                      >
+                        View Details
+                      </Button>
+                      {sheet.pdfPath && (
                         <Button 
                           size="small" 
-                          onClick={() => navigate(`/sheet/${sheet.id}`)}
-                          style={{ fontSize: '0.75rem', padding: '0 8px', whiteSpace: 'nowrap' }}
+                          type="primary"
+                          onClick={() => sheetsApi.openPdf(sheet.pdfPath)}
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '0 12px', 
+                            whiteSpace: 'nowrap',
+                            background: '#2563eb',
+                            borderColor: '#2563eb'
+                          }}
                         >
-                          View Details
+                          View PDF
                         </Button>
-                        {sheet.pdfPath && (
-                          <Button 
-                            size="small" 
-                            type="primary"
-                            onClick={() => sheetsApi.openPdf(sheet.pdfPath)}
-                            style={{ 
-                              fontSize: '0.75rem', 
-                              padding: '0 8px', 
-                              whiteSpace: 'nowrap',
-                              background: '#2563eb',
-                              borderColor: '#2563eb'
-                            }}
-                          >
-                            View PDF
-                          </Button>
-                        )}
-                      </div>
-                    ) },
-                ]}
-              />
-            </>
-          ) : (
-            <Empty description="Select a project to view its action sheets" style={{ marginTop: 80 }} />
-          )}
-        </div>
+                      )}
+                    </div>
+                  ) },
+              ]}
+            />
+          </>
+        ) : (
+          <Empty description="Select a project from the sidebar to view its action sheets" style={{ marginTop: 100 }} />
+        )}
       </div>
 
       <Modal title="New Project" open={addModal} onOk={handleAdd} onCancel={() => setAddModal(false)} okText="Create">
