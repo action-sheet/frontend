@@ -81,10 +81,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isAdmin = user?.role?.toLowerCase() === 'admin'
   const isExm = user?.role?.toLowerCase() === "ex.m's"
+  const isViewer = user?.role?.toLowerCase() === 'viewer'
+  const isReadOnly = isExm || isViewer
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
-    ...(!isExm ? [{
+    ...(!isReadOnly ? [{
       key: 'new-sheet-trigger',
       icon: <PlusOutlined />,
       label: 'New Sheet',

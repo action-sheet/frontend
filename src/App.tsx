@@ -19,6 +19,7 @@ import './index.css'
 function AuthenticatedApp() {
   const { user } = useAuthStore()
   useWebSocket()
+  const isReadOnly = user?.role?.toLowerCase() === 'viewer' || user?.role?.toLowerCase() === "ex.m's"
   if (!user) return <Navigate to="/login" replace />
   return (
     <Routes>
@@ -28,9 +29,9 @@ function AuthenticatedApp() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/sheet/new" element={<SheetForm />} />
+            <Route path="/sheet/new" element={isReadOnly ? <Navigate to="/" replace /> : <SheetForm />} />
             <Route path="/sheet/:id" element={<SheetDetail />} />
-            <Route path="/sheet/:id/edit" element={<SheetForm />} />
+            <Route path="/sheet/:id/edit" element={isReadOnly ? <Navigate to="/" replace /> : <SheetForm />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/repository" element={<Repository />} />

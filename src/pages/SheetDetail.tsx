@@ -90,6 +90,8 @@ export default function SheetDetail() {
   const sheet = currentSheet
   const isGM = user?.role?.toLowerCase() === 'gm' || user?.role?.toLowerCase() === 'general manager (gm)' || user?.role?.toLowerCase() === 'general manager'
   const isExm = user?.role?.toLowerCase() === "ex.m's"
+  const isViewer = user?.role?.toLowerCase() === 'viewer'
+  const isReadOnly = isExm || isViewer
   const isDraft = sheet.workflowState === 'DRAFT'
   const isLocked = !!sheet.overriddenBy
   const recipientCount = Object.keys(sheet.assignedTo || {}).length
@@ -252,7 +254,7 @@ export default function SheetDetail() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {isDraft && !isExm && (
+          {isDraft && !isReadOnly && (
             <Button
               type="primary"
               icon={<SendOutlined />}
@@ -291,7 +293,7 @@ export default function SheetDetail() {
               View PDF
             </Button>
           )}
-          {isGM && !isLocked && !isExm && (
+          {isGM && !isLocked && !isReadOnly && (
             <Button
               icon={<LockOutlined />}
               size="large"
@@ -301,7 +303,7 @@ export default function SheetDetail() {
               GM Override
             </Button>
           )}
-          {!isExm && (
+          {!isReadOnly && (
             <Button
               icon={<EditOutlined />}
               size="large"
@@ -311,7 +313,7 @@ export default function SheetDetail() {
               Edit
             </Button>
           )}
-          {!isExm && (
+          {!isReadOnly && (
             <Button
               danger
               icon={<DeleteOutlined />}

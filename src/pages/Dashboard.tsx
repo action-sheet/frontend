@@ -84,6 +84,8 @@ export default function Dashboard() {
 
   // Role checks
   const isExm = user?.role?.toLowerCase() === "ex.m's"
+  const isViewer = user?.role?.toLowerCase() === 'viewer'
+  const isReadOnly = isExm || isViewer
 
   // Email responses preview state
   const [responsesPreview, setResponsesPreview] = useState<{ sheetId: string; responses: Record<string, string>; responseHistory: any[] } | null>(null)
@@ -301,7 +303,7 @@ export default function Dashboard() {
         const isDraft = r.workflowState === 'DRAFT' || r.status === 'DRAFT'
         return (
           <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-            {isDraft && !isExm ? (
+            {isDraft && !isReadOnly ? (
               <Button size="small" icon={<EditOutlined />}
                 style={{ background: '#fee2e2', borderColor: '#fee2e2', color: '#dc2626', fontWeight: 600, fontSize: '0.75rem' }}
                 onClick={(e) => { e.stopPropagation(); navigate(`/sheet/${r.id}/edit`) }}>
@@ -335,9 +337,9 @@ export default function Dashboard() {
             )}
             <Dropdown menu={{ items: [
               { key:'view', icon:<EyeOutlined />, label:'View Details', onClick:() => navigate(`/sheet/${r.id}`) },
-              ...(!isExm ? [{ key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) }] : []),
+              ...(!isReadOnly ? [{ key:'edit', icon:<EditOutlined />, label:'Edit', onClick:() => navigate(`/sheet/${r.id}/edit`) }] : []),
               ...(r.pdfPath ? [{ key:'pdf', icon:<FilePdfOutlined />, label:'Open PDF', onClick:() => sheetsApi.openPdf(r.pdfPath!) }] : []),
-              ...(!isExm ? [{ type:'divider' as const }, { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) }] : []),
+              ...(!isReadOnly ? [{ type:'divider' as const }, { key:'delete', icon:<DeleteOutlined />, label:'Delete', danger:true, onClick:() => handleDelete(r.id, r.title) }] : []),
             ]}} trigger={['click']}>
               <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
             </Dropdown>
@@ -364,7 +366,7 @@ export default function Dashboard() {
             style={{ height: 40, fontWeight: 500 }}>
             Print
           </Button>
-          {!isExm && (
+          {!isReadOnly && (
             <Button type="primary" icon={<PlusOutlined />} size="large"
               onClick={handleNewSheetClick}
               style={{ height: 40, paddingInline: 20, fontWeight: 600 }}>
@@ -431,7 +433,7 @@ export default function Dashboard() {
             <div className="empty-state-icon">📋</div>
             <div className="empty-state-title">No action sheets yet</div>
             <div className="empty-state-desc">Create your first action sheet to start tracking tasks and collecting responses.</div>
-            {!isExm && (
+            {!isReadOnly && (
               <Button type="primary" icon={<PlusOutlined />} onClick={handleNewSheetClick} style={{ height:38, paddingInline:20 }}>
                 Create Action Sheet
               </Button>
@@ -443,8 +445,10 @@ export default function Dashboard() {
             size="middle"
             onRow={r => ({
               onClick: () => {
-                if (isExm) {
-                  // EX.M's role can only view, not edit
+                if (isReadOnly) {
+                  // Viewer / EX.M's role can only view non-draft sheets
+                  const isDraftRow = r.workflowState === 'DRAFT' || r.status === 'DRAFT'
+                  if (isViewer && isDraftRow) return // Viewers cannot open drafts at all
                   navigate(`/sheet/${r.id}`)
                   return
                 }
