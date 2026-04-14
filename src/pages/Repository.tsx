@@ -94,7 +94,20 @@ export default function Repository() {
   }, [fileList, dateKey, selectedDate, fetchDocs, fetchDocDates])
 
   const handleFileSelect = useCallback((files: File[]) => {
-    setFileList(prev => [...prev, ...files])
+    setFileList(prev => {
+      // Create a map of existing files by name and size to avoid duplicates
+      const existingMap = new Map(prev.map(f => [`${f.name}-${f.size}`, f]))
+      
+      // Add new files, avoiding duplicates
+      files.forEach(f => {
+        const key = `${f.name}-${f.size}`
+        if (!existingMap.has(key)) {
+          existingMap.set(key, f)
+        }
+      })
+      
+      return Array.from(existingMap.values())
+    })
   }, [])
 
   const handleRemoveFile = useCallback((index: number) => {
@@ -248,8 +261,12 @@ export default function Repository() {
               <Upload
                 multiple 
                 showUploadList={false}
-                beforeUpload={(_file, fileList) => {
-                  handleFileSelect(fileList as unknown as File[])
+                beforeUpload={(file, fileList) => {
+                  // Only process once when all files are selected
+                  // The fileList contains all selected files
+                  if (fileList[fileList.length - 1] === file) {
+                    handleFileSelect(fileList as unknown as File[])
+                  }
                   return false
                 }}
               >
@@ -333,26 +350,28 @@ export default function Repository() {
                     display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                     borderRadius: 8, marginBottom: 4, background: '#fafaf8',
                     border: '1px solid #f0ebe4', transition: 'background 0.2s',
-                    cursor: 'pointer',
+                    cursor: 'pointer', minWidth: 0,
                   }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#f5f0ea')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fafaf8')}
                     onDoubleClick={() => handleOpen(doc)}
                   >
-                    {getFileIcon(doc.fileName)}
-                    <div style={{ flex: 1, minWidth: 0, maxWidth: '100%' }}>
+                    <div style={{ flexShrink: 0 }}>
+                      {getFileIcon(doc.fileName)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       <Tooltip title={doc.originalName}>
                         <div style={{ fontWeight: 500, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {doc.originalName}
                         </div>
                       </Tooltip>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: 12 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                         <span>{formatSize(doc.fileSize)}</span>
                         <span>{doc.uploaderName}</span>
                         <span>{dayjs(doc.uploadTimestamp).format('HH:mm')}</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 2 }}>
+                    <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                       <Tooltip title="Open"><Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleOpen(doc)} /></Tooltip>
                       <Tooltip title="Delete">
                         <Button type="text" size="small" danger icon={<DeleteOutlined />}
