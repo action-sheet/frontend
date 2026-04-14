@@ -4,7 +4,7 @@ import {
   UploadOutlined, DeleteOutlined, EyeOutlined, FileOutlined,
   FilePdfOutlined, FileImageOutlined, FileWordOutlined, FileExcelOutlined,
   FileZipOutlined, InboxOutlined, UndoOutlined,
-  FolderOpenOutlined,
+  FolderOpenOutlined, PlusOutlined, CloseOutlined,
 } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
@@ -45,6 +45,8 @@ export default function Repository() {
   const [docDates, setDocDates] = useState<Set<number>>(new Set())
   const [showDeleted, setShowDeleted] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [fileList, setFileList] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
   const dropRef = useRef<HTMLDivElement>(null)
 
   const dateKey = selectedDate.format('YYYY-MM-DD')
@@ -75,16 +77,29 @@ export default function Repository() {
   useEffect(() => { fetchDocs() }, [fetchDocs])
   useEffect(() => { fetchDocDates() }, [fetchDocDates])
 
-  const handleFileUpload = useCallback(async (files: File[]) => {
+  const handleFileUpload = useCallback(async () => {
+    if (fileList.length === 0) return
+    setUploading(true)
     try {
-      await repositoryApi.upload(dateKey, files)
-      message.success(`${files.length} file(s) uploaded to ${selectedDate.format('DD MMM YYYY')}`)
+      await repositoryApi.upload(dateKey, fileList)
+      message.success(`${fileList.length} file(s) uploaded to ${selectedDate.format('DD MMM YYYY')}`)
+      setFileList([])
       fetchDocs()
       fetchDocDates()
     } catch {
       message.error('Upload failed')
+    } finally {
+      setUploading(false)
     }
-  }, [dateKey, selectedDate, fetchDocs, fetchDocDates])
+  }, [fileList, dateKey, selectedDate, fetchDocs, fetchDocDates])
+
+  const handleFileSelect = useCallback((files: File[]) => {
+    setFileList(prev => [...prev, ...files])
+  }, [])
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setFileList(prev => prev.filter((_, i) => i !== index))
+  }, [])
 
   // Native drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -101,8 +116,8 @@ export default function Repository() {
     e.stopPropagation()
     setDragOver(false)
     const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) handleFileUpload(files)
-  }, [handleFileUpload])
+    if (files.length > 0) handleFileSelect(files)
+  }, [handleFileSelect])
 
   const handleDelete = (doc: RepoDocument) => {
     Modal.confirm({
@@ -206,15 +221,41 @@ export default function Repository() {
                 {docs.length} document{docs.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              {fileList.length > 0 && (
+                <>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginRight: 4 }}>
+                    {fileList.length} file{fileList.length !== 1 ? 's' : ''} ready
+                  </span>
+                  <Button 
+                    icon={<UploadOutlined />} 
+                    type="primary" 
+                    size="small"
+                    loading={uploading}
+                    onClick={handleFileUpload}
+                  >
+                    Upload Now
+                  </Button>
+                  <Button 
+                    size="small"
+                    onClick={() => setFileList([])}
+                    disabled={uploading}
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
               <Upload
-                multiple showUploadList={false}
+                multiple 
+                showUploadList={false}
                 beforeUpload={(_file, fileList) => {
-                  handleFileUpload(fileList as unknown as File[])
+                  handleFileSelect(fileList as unknown as File[])
                   return false
                 }}
               >
-                <Button icon={<UploadOutlined />} type="primary" size="small">Upload</Button>
+                <Button icon={<PlusOutlined />} size="small" disabled={uploading}>
+                  {fileList.length > 0 ? 'Add More' : 'Select Files'}
+                </Button>
               </Upload>
               <Button size="small"
                 onClick={() => setShowDeleted(!showDeleted)}
@@ -244,6 +285,39 @@ export default function Repository() {
 
           {/* Document list */}
           <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}>
+            {/* Queued files for upload */}
+            {fileList.length > 0 && (
+              <div style={{ marginBottom: 12, padding: 12, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: '#1e40af' }}>
+                  📤 Ready to Upload ({fileList.length})
+                </div>
+                {fileList.map((file, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
+                    background: 'white', borderRadius: 6, marginBottom: 4,
+                  }}>
+                    {getFileIcon(file.name)}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {file.name}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {formatSize(file.size)}
+                      </div>
+                    </div>
+                    <Button 
+                      type="text" 
+                      size="small" 
+                      danger
+                      icon={<CloseOutlined />}
+                      onClick={() => handleRemoveFile(idx)}
+                      disabled={uploading}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {docs.length === 0 && !showDeleted ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
                 <InboxOutlined style={{ fontSize: 48, marginBottom: 12, display: 'block', color: '#ccc' }} />
@@ -266,10 +340,12 @@ export default function Repository() {
                     onDoubleClick={() => handleOpen(doc)}
                   >
                     {getFileIcon(doc.fileName)}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 500, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {doc.originalName}
-                      </div>
+                    <div style={{ flex: 1, minWidth: 0, maxWidth: '100%' }}>
+                      <Tooltip title={doc.originalName}>
+                        <div style={{ fontWeight: 500, fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {doc.originalName}
+                        </div>
+                      </Tooltip>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: 12 }}>
                         <span>{formatSize(doc.fileSize)}</span>
                         <span>{doc.uploaderName}</span>
