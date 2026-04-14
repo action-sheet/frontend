@@ -1,0 +1,19 @@
+version: "2"
+authtoken: YOUR_AUTHTOKEN_HERE
+
+tunnels:
+  actionsheet-backend:
+    proto: http
+    addr: 8080
+    # Replace 8080 with your backend port if different
+    
+    # Rewrite host header to avoid ngrok warning page
+    host_header: rewrite
+    
+    # Add response headers for CORS
+    response_headers:
+      add:
+        - "Access-Control-Allow-Origin: https://frontend-rho-peach-62.vercel.app"
+        - "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        - "Access-Control-Allow-Headers: Content-Type, Authorization, X-User-Email, ngrok-skip-browser-warning"
+        - "Access-Control-Allow-Credentials: true"
