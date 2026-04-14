@@ -1,4 +1,7 @@
 {
+  "env": {
+    "VITE_API_URL": "https://actionsheet.tail0da185.ts.net"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
