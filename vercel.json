@@ -1,6 +1,6 @@
 {
   "env": {
-    "VITE_API_URL": "https://www.actionsheetacgv3.0.com"
+    "VITE_API_URL": "https://fur-loops-cell-missile.trycloudflare.com"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
