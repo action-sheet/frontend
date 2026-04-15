@@ -1,6 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "www.actionsheetacgv3.0.com"
+    "VITE_API_URL": "https://www.actionsheetacgv3.0.com",
+    "VITE_WS_URL": "wss://www.actionsheetacgv3.0.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
