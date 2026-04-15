@@ -1,0 +1,7 @@
+tunnel: 0e20a879-56f0-476b-aafc-c5cc86d8fd07
+credentials-file: C:\Users\administrator.ACG\.cloudflared\0e20a879-56f0-476b-aafc-c5cc86d8fd07.json
+
+ingress:
+  - hostname: "*.cfargotunnel.com"
+    service: http://localhost:8080
+  - service: http_status:404
