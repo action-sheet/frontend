@@ -1,7 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "https://temperatures-editions-answer-small.trycloudflare.com",
-    "VITE_WS_URL": "wss://temperatures-editions-answer-small.trycloudflare.com/ws-direct"
+    "VITE_API_URL": "https://grown-accounts-prompt-comp.trycloudflare.com",
+    "VITE_WS_URL": "wss://grown-accounts-prompt-comp.trycloudflare.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
