@@ -1,70 +1,74 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 /**
  * EmailResponse — Standalone page that processes email response clicks.
  *
- * WHY THIS EXISTS:
- * Email buttons previously linked directly to the ngrok backend URL,
- * which showed ngrok's browser warning interstitial page.
+ * SECURITY FIX (v2.1):
+ * Previously auto-submitted on page load, which allowed Microsoft ATP and
+ * Google email scanners to trigger phantom responses by executing the SPA JS.
  *
- * This page is served by Vercel (no ngrok) and uses fetch() with the
- * 'ngrok-skip-browser-warning' header to call the backend API silently,
- * completely bypassing the ngrok warning on all devices and browsers.
+ * Now shows a CONFIRMATION screen first — the user must click a button
+ * to submit their response. Scanners won't interact with buttons.
  *
  * URL format: /respond?sheet=XX&email=XX&response=XX&token=XX
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
-type Status = 'loading' | 'success' | 'already' | 'info' | 'error' | 'invalid'
+type Status = 'confirm' | 'loading' | 'success' | 'already' | 'info' | 'error' | 'invalid'
 
 interface ResponseResult {
   status: Status
   title: string
   message: string
   color: string
+  response?: string
+  sheetId?: string
 }
 
 export default function EmailResponse() {
-  const [result, setResult] = useState<ResponseResult>({
-    status: 'loading',
-    title: 'Processing Your Response',
-    message: 'Please wait...',
-    color: '#800000',
-  })
+  const params = new URLSearchParams(window.location.search)
+  const sheet = params.get('sheet')
+  const email = params.get('email')
+  const response = params.get('response')
+  const token = params.get('token')
 
-  useEffect(() => {
-    processResponse()
-  }, [])
+  // Determine if params are valid
+  const isValid = !!(sheet && email && response && token)
 
-  async function processResponse() {
-    const params = new URLSearchParams(window.location.search)
-    const sheet = params.get('sheet')
-    const email = params.get('email')
-    const response = params.get('response')
-    const token = params.get('token')
+  const [result, setResult] = useState<ResponseResult>(
+    isValid
+      ? {
+          status: 'confirm',
+          title: 'Confirm Your Response',
+          message: `You are about to respond to this action sheet.`,
+          color: '#800000',
+          response: response!,
+          sheetId: sheet!,
+        }
+      : {
+          status: 'invalid',
+          title: '⚠️ Invalid Link',
+          message: 'This response link is missing required parameters.',
+          color: '#e65100',
+        }
+  )
 
-    // Validate required params
-    if (!sheet || !email || !response || !token) {
-      setResult({
-        status: 'invalid',
-        title: '⚠️ Invalid Link',
-        message: 'This response link is missing required parameters.',
-        color: '#e65100',
-      })
-      return
-    }
+  // Only called when user clicks the confirm button — NOT on page load
+  async function submitResponse() {
+    setResult({
+      status: 'loading',
+      title: 'Processing Your Response',
+      message: 'Please wait...',
+      color: '#800000',
+    })
 
     try {
-      // Call the backend API via POST to record the response.
-      // POST is used instead of GET to prevent email security scanners
-      // (Microsoft Safe Links, Google link scanning) from triggering
-      // false responses — scanners only follow GET links, never POST.
       const apiUrl = `${API_BASE}/api/respond/process?` + new URLSearchParams({
-        sheet,
-        email,
-        response,
-        token,
+        sheet: sheet!,
+        email: email!,
+        response: response!,
+        token: token!,
       }).toString()
 
       const res = await fetch(apiUrl, {
@@ -75,11 +79,8 @@ export default function EmailResponse() {
         },
       })
 
-      // The backend returns HTML, but we need to parse the result
-      // from the response status and body to show our own UI
       const html = await res.text()
 
-      // Parse the response from the backend HTML
       if (html.includes('Already Responded') || html.includes('already responded')) {
         setResult({
           status: 'already',
@@ -88,7 +89,6 @@ export default function EmailResponse() {
           color: '#1976d2',
         })
       } else if (html.includes('Response Updated') || html.includes('recorded successfully')) {
-        // Extract the response value from the HTML
         const responseMatch = html.match(/"([^"]*)" has been recorded/)
                            || html.match(/&quot;([^&]*)&quot; has been recorded/)
         const recordedResponse = responseMatch?.[1] || response
@@ -127,7 +127,6 @@ export default function EmailResponse() {
           color: '#dc2626',
         })
       } else {
-        // Default success (the backend responded OK but format unknown)
         setResult({
           status: 'success',
           title: '✅ Response Recorded',
@@ -146,17 +145,29 @@ export default function EmailResponse() {
     }
   }
 
-  // Extract a readable message from the backend HTML
   function extractMessage(html: string, fallback: string): string {
     const match = html.match(/<p>(.*?)<\/p>/s)
     if (match) {
-      // Strip HTML tags from the extracted message
       return match[1].replace(/<[^>]+>/g, '').trim() || fallback
     }
     return fallback
   }
 
+  // Determine button color and emoji for the response type
+  function getResponseStyle(resp: string) {
+    const upper = (resp || '').toUpperCase()
+    if (upper.includes('ACTION TAKEN') || upper.includes('COMPLETED')) return { color: '#16a34a', emoji: '✅' }
+    if (upper.includes('PROGRESS')) return { color: '#2563eb', emoji: '🔄' }
+    if (upper.includes('NOTED') || upper.includes('ACKNOWLEDGED')) return { color: '#6b7280', emoji: '📋' }
+    if (upper.includes('REVIEW')) return { color: '#d97706', emoji: '🔍' }
+    if (upper.includes('REJECT')) return { color: '#dc2626', emoji: '❌' }
+    if (upper.includes('APPROVED')) return { color: '#16a34a', emoji: '✅' }
+    return { color: '#800000', emoji: '📋' }
+  }
+
   const isLoading = result.status === 'loading'
+  const isConfirm = result.status === 'confirm'
+  const style = getResponseStyle(response || '')
 
   return (
     <div style={{
@@ -210,6 +221,53 @@ export default function EmailResponse() {
               </h2>
               <p style={{ color: '#666', fontSize: 14, margin: 0 }}>{result.message}</p>
             </>
+          ) : isConfirm ? (
+            <>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>
+                {style.emoji}
+              </div>
+              <h2 style={{ color: '#333', fontSize: 20, marginBottom: 8 }}>
+                Confirm Your Response
+              </h2>
+              <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+                You are about to respond to this action sheet with:
+              </p>
+              <div style={{
+                display: 'inline-block',
+                background: style.color,
+                color: 'white',
+                padding: '8px 20px',
+                borderRadius: 8,
+                fontWeight: 700,
+                fontSize: 16,
+                marginBottom: 16,
+              }}>
+                {response}
+              </div>
+              <p style={{ color: '#999', fontSize: 12, marginBottom: 24 }}>
+                Sheet: {sheet}
+              </p>
+              <button
+                onClick={submitResponse}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '16px',
+                  background: style.color,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                {style.emoji} Click to Confirm Response
+              </button>
+            </>
           ) : (
             <>
               <div style={{
@@ -251,7 +309,7 @@ export default function EmailResponse() {
           borderTop: '1px solid #e5e0d8',
         }}>
           <p style={{ color: '#999', fontSize: 11, margin: 0 }}>
-            You may close this window.
+            {isConfirm ? 'If you did not request this, you can safely close this page.' : 'You may close this window.'}
           </p>
         </div>
       </div>
