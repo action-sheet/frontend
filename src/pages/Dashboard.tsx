@@ -402,13 +402,14 @@ export default function Dashboard() {
       {/* ── Stat Cards (Visible to ALL users) ── */}
       <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
         {[
-          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)' },
-          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)' },
-          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)' },
-          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)' },
-          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)' },
+          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)', clickable: false },
+          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)', clickable: false },
+          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)', clickable: false },
+          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)', clickable: false },
+          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)', clickable: true },
         ].map(s => (
-          <div className="stat-card fade-in-up" key={s.label}>
+          <div className={`stat-card fade-in-up ${s.clickable ? 'stat-card--clickable' : ''}`} key={s.label}
+            onClick={s.clickable ? () => navigate('/conflicts') : undefined}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
                 <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
@@ -566,7 +567,7 @@ export default function Dashboard() {
         okButtonProps={{ disabled: printSelectedKeys.length === 0, icon: <PrinterOutlined /> }}
         onOk={() => {
           if (printSelectedKeys.length === 0) return
-          const printUrl = `${window.location.origin}/print?ids=${printSelectedKeys.join(',')}`
+          const printUrl = `${window.location.origin}/print?ids=${printSelectedKeys.join(',')}&mode=print`
           window.open(printUrl, '_blank')
           setPrintModal(false)
           setPrintSelectedKeys([])
@@ -585,7 +586,11 @@ export default function Dashboard() {
             { title: 'Action Sheet', dataIndex: 'title', key: 'title', ellipsis: true },
             { title: 'Status', dataIndex: 'status', key: 'status', width: 160 },
           ]}
-          dataSource={sheets.filter(s => s.workflowState !== 'DRAFT')}
+          dataSource={sheets.filter(s => s.workflowState !== 'DRAFT').sort((a, b) => {
+            const dateA = a.createdDate ? new Date(a.createdDate).getTime() : 0
+            const dateB = b.createdDate ? new Date(b.createdDate).getTime() : 0
+            return dateB - dateA
+          })}
           rowKey="id"
           size="small"
           scroll={{ y: 400 }}

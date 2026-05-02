@@ -274,4 +274,12 @@ export const repositoryApi = {
     api.post(`/api/repository/restore/${dateKey}/${docId}`),
 };
 
+// ========== GM Review Hub API ==========
+export const reviewHubApi = {
+  getEscalatedSheets: () => api.get('/api/review-hub/sheets'),
+  getEscalatedCount: () => api.get('/api/review-hub/count'),
+  markStatus: (sheetId: string, status: string, note?: string) =>
+    api.post(`/api/review-hub/sheets/${sheetId}/mark`, { status, note }),
+};
+
 export default api;

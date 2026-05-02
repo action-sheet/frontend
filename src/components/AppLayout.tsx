@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Layout, Menu, Avatar, Button, Dropdown, Modal, Input, message } from 'antd'
+import { Layout, Menu, Avatar, Button, Dropdown, Modal, Input, message, Badge } from 'antd'
 import {
   PlusOutlined,
   DashboardOutlined,
@@ -15,9 +15,11 @@ import {
   AppstoreOutlined,
   FileTextOutlined,
   DeleteOutlined,
+  BarChartOutlined,
+  AlertOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '../store'
-import { projectsApi } from '../api/client'
+import { projectsApi, reviewHubApi } from '../api/client'
 
 const { Sider, Content, Header } = Layout
 
@@ -84,6 +86,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { fetchProjects() }, [fetchProjects])
 
+  // ── Escalated sheets count (for sidebar badge) ──
+  const [escalatedCount, setEscalatedCount] = useState(0)
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await reviewHubApi.getEscalatedCount()
+        setEscalatedCount(res.data?.count || 0)
+      } catch { /* silently fail */ }
+    }
+    fetchCount()
+    const iv = setInterval(fetchCount, 60000)
+    return () => clearInterval(iv)
+  }, [])
+
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) { message.warning('Enter a project name'); return }
     try {
@@ -124,6 +140,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       label: 'New Sheet',
     }] : []),
     { key: '/repository', icon: <FolderOpenOutlined />, label: 'Repository' },
+    { key: '/insights', icon: <BarChartOutlined />, label: 'Monthly Insights' },
+    { key: '/review-hub', icon: <AlertOutlined />, label: (
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        GM Review Hub
+        {escalatedCount > 0 && (
+          <Badge count={escalatedCount} size="small" style={{ backgroundColor: '#d97706', boxShadow: '0 0 0 2px var(--bg-primary)' }} />
+        )}
+      </span>
+    ) },
     // Projects dropdown in sidebar — shows all projects inline
     {
       key: 'projects-sub',

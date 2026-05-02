@@ -56,8 +56,11 @@ export default function EmailResponse() {
     }
 
     try {
-      // Call the backend API with ngrok-skip header to bypass interstitial
-      const apiUrl = `${API_BASE}/api/respond?` + new URLSearchParams({
+      // Call the backend API via POST to record the response.
+      // POST is used instead of GET to prevent email security scanners
+      // (Microsoft Safe Links, Google link scanning) from triggering
+      // false responses — scanners only follow GET links, never POST.
+      const apiUrl = `${API_BASE}/api/respond/process?` + new URLSearchParams({
         sheet,
         email,
         response,
@@ -65,7 +68,7 @@ export default function EmailResponse() {
       }).toString()
 
       const res = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': 'true',
           'Accept': 'text/html,application/json',

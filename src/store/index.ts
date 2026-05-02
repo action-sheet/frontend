@@ -30,6 +30,10 @@ export interface ActionSheet {
   conflictThreads: any[];
   recipientCount: number;
   responseCount: number;
+  sentDate?: string;
+  firstReminderSentAt?: string;
+  secondReminderSentAt?: string;
+  escalatedAt?: string;
 }
 
 export interface User {

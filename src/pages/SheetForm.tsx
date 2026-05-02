@@ -7,6 +7,62 @@ import { employeesApi, sheetsApi, projectsApi } from '../api/client'
 import dayjs from 'dayjs'
 
 /* ════════════════════════════════════════
+   AUTO-SHRINK INPUT — Smart font sizing
+   ════════════════════════════════════════ */
+function AutoShrinkInput({
+  value,
+  onChange,
+  maxFontSize = 13,
+  minFontSize = 9,
+  className,
+  style,
+  ...rest
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  maxFontSize?: number
+  minFontSize?: number
+  className?: string
+  style?: React.CSSProperties
+  [key: string]: any
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [fontSize, setFontSize] = useState(maxFontSize)
+
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    // Reset to max to measure true overflow
+    el.style.fontSize = `${maxFontSize}px`
+    requestAnimationFrame(() => {
+      if (!el) return
+      const scrollW = el.scrollWidth
+      const clientW = el.clientWidth
+      if (scrollW > clientW && clientW > 0) {
+        const ratio = clientW / scrollW
+        const newSize = Math.max(minFontSize, Math.floor(maxFontSize * ratio))
+        setFontSize(newSize)
+        el.style.fontSize = `${newSize}px`
+      } else {
+        setFontSize(maxFontSize)
+        el.style.fontSize = `${maxFontSize}px`
+      }
+    })
+  }, [value, maxFontSize, minFontSize])
+
+  return (
+    <input
+      ref={inputRef}
+      value={value}
+      onChange={onChange}
+      className={className}
+      style={{ ...style, fontSize: `${fontSize}px`, transition: 'font-size 0.15s ease' }}
+      {...rest}
+    />
+  )
+}
+
+/* ════════════════════════════════════════
    TYPES
    ════════════════════════════════════════ */
 interface Employee {
@@ -758,10 +814,12 @@ export default function SheetForm() {
     
     try {
       let sheetId = id
+      const isResend = isEdit && id && currentSheet && currentSheet.status !== 'DRAFT'
       
       // Step 1: Create or update the sheet
       if (isEdit && id) {
         await updateSheet(id, { title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+        sheetId = id
       } else {
         const result = await createSheet({ title: subject, formData: getFormData(), status: 'PENDING', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
         sheetId = result.id
@@ -776,8 +834,21 @@ export default function SheetForm() {
           // Don't fail the send, just log it
         }
       }
+
+      // Step 3: If editing an already-sent sheet, trigger resend to re-notify recipients
+      if (isResend && sheetId) {
+        try {
+          await sheetsApi.resend(sheetId)
+        } catch (resendError) {
+          console.error('Resend notification failed:', resendError)
+          // Sheet was saved — warn but don't fail
+          message.warning({ content: 'Sheet updated but email re-notification failed. Recipients may need manual notification.', key: 'send-progress', duration: 4 })
+          navigate('/')
+          return
+        }
+      }
       
-      message.success({ content: 'Action Sheet sent successfully!', key: 'send-progress' })
+      message.success({ content: isResend ? 'Action Sheet re-sent successfully!' : 'Action Sheet sent successfully!', key: 'send-progress' })
       navigate('/')
     } catch (error) {
       console.error('Failed to send:', error)
@@ -932,7 +1003,7 @@ export default function SheetForm() {
         <div className="bi-field-row">
           <div className="bi-field">
             <span className="bi-field-label">Original To:</span>
-            <input 
+            <AutoShrinkInput 
               value={originalTo} 
               onChange={e => {
                 setOriginalTo(e.target.value)
@@ -943,7 +1014,7 @@ export default function SheetForm() {
           </div>
           <div className="bi-field">
             <span className="bi-field-label">Date Received:</span>
-            <input 
+            <AutoShrinkInput 
               value={dateReceived} 
               onChange={e => {
                 setDateReceived(e.target.value)
@@ -958,7 +1029,7 @@ export default function SheetForm() {
         <div className="bi-field-row">
           <div className="bi-field">
             <span className="bi-field-label">Ref. No.:</span>
-            <input 
+            <AutoShrinkInput 
               value={refNo} 
               onChange={e => {
                 setRefNo(e.target.value)
@@ -969,7 +1040,7 @@ export default function SheetForm() {
           </div>
           <div className="bi-field">
             <span className="bi-field-label">Document Date:</span>
-            <input 
+            <AutoShrinkInput 
               value={documentDate} 
               onChange={e => {
                 setDocumentDate(e.target.value)
@@ -986,7 +1057,7 @@ export default function SheetForm() {
         <div className="bi-field-row full">
           <div className="bi-field">
             <span className="bi-field-label">From:</span>
-            <input 
+            <AutoShrinkInput 
               value={from} 
               onChange={e => {
                 setFrom(e.target.value)
@@ -1001,12 +1072,13 @@ export default function SheetForm() {
         <div className="bi-field-row full">
           <div className="bi-field">
             <span className="bi-field-label">Subject:</span>
-            <input 
+            <AutoShrinkInput 
               value={subject} 
               onChange={e => {
                 setSubject(e.target.value)
                 optimisticUpdate('subject', e.target.value)
               }} 
+              minFontSize={10}
             />
             <span className="bi-field-label-ar">:الموضوع</span>
           </div>
@@ -1377,13 +1449,32 @@ export default function SheetForm() {
             Save as Draft
           </Button>
           <Button icon={<EyeOutlined />}
+            onClick={async () => {
+              // Save first (as draft if new, update if existing) then open preview
+              try {
+                const { assignedTo, recipientTypes } = buildRecipientMaps()
+                let sheetId = id
+                if (isEdit && id) {
+                  await updateSheet(id, { title: subject || 'Untitled', formData: getFormData(), status: currentSheet?.status || 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+                } else {
+                  const result = await createSheet({ title: subject || 'Untitled', formData: getFormData(), status: 'DRAFT', projectId: projectFromUrl || undefined, assignedTo, recipientTypes })
+                  sheetId = result.id
+                }
+                if (sheetId) {
+                  window.open(`/print?ids=${sheetId}`, '_blank')
+                }
+              } catch (err) {
+                console.error('Preview failed:', err)
+                message.error('Failed to generate preview. Please try saving first.')
+              }
+            }}
             style={{ background: '#3b82f6', borderColor: '#3b82f6', color: 'white', fontWeight: 600 }}>
             Preview
           </Button>
             <Button type="primary" size="large" icon={<SendOutlined />}
               onClick={handleSend} style={{ background: '#2563eb', fontWeight: 600, paddingInline: 24 }}
               loading={isSending}>
-              {isSending ? 'Sending...' : 'Send Action Sheet'}
+              {isSending ? 'Sending...' : (isEdit && currentSheet && currentSheet.status !== 'DRAFT' ? 'Resend Action Sheet' : 'Send Action Sheet')}
             </Button>
           <Button icon={<ClearOutlined />} onClick={handleClear}
             style={{ background: '#94a3b8', borderColor: '#94a3b8', color: 'white', fontWeight: 600 }}>

@@ -14,6 +14,9 @@ import DraftRecovery from './pages/DraftRecovery'
 import Settings from './pages/Settings'
 import Projects from './pages/Projects'
 import Trash from './pages/Trash'
+import MonthlyInsights from './pages/MonthlyInsights'
+import ConflictsView from './pages/ConflictsView'
+import ReviewHub from './pages/ReviewHub'
 import EmailResponse from './pages/EmailResponse'
 import './index.css'
 
@@ -37,6 +40,9 @@ function AuthenticatedApp() {
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<Projects />} />
             <Route path="/repository" element={<Repository />} />
+            <Route path="/insights" element={<MonthlyInsights />} />
+            <Route path="/conflicts" element={<ConflictsView />} />
+            <Route path="/review-hub" element={<ReviewHub />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin/trash" element={<Trash />} />
             <Route path="/admin/draft-recovery" element={<DraftRecovery />} />
