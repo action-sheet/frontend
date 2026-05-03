@@ -44,7 +44,23 @@ const chartVariants = {
 }
 
 /* ── Pie Chart Colors ── */
-const PIE_COLORS = ['#16a34a', '#d97706', '#2563eb', '#dc2626', '#8b5cf6', '#6b7280']
+/* Pie chart colors — MUST match status tag colors for consistency */
+const STATUS_PIE_COLORS: Record<string, string> = {
+  'COMPLETED': '#15803d',
+  'IN_PROGRESS': '#7c3aed',
+  'PENDING_REVIEW': '#d97706',
+  'DRAFT': '#8a8a8a',
+  'IN PROGRESS': '#7c3aed',
+  'PENDING': '#d97706',
+  'ACTION TAKEN': '#16a34a',
+  'APPROVED': '#059669',
+  'NOTED': '#2563eb',
+  'REJECTED / RETURNED': '#dc2626',
+  'REVIEW REQUESTED': '#ea580c',
+  'INFORMATIONAL ONLY': '#6b7280',
+  'UNKNOWN': '#8a8a8a',
+}
+const DEFAULT_PIE_COLOR = '#6b7280'
 
 /* ── Status tag color & icon map ── */
 const STATUS_TAG_CONFIG: Record<string, { color: string; icon: React.ReactNode }> = {
@@ -242,7 +258,11 @@ export default function MonthlyInsights() {
       const st = s.workflowState || 'UNKNOWN'
       counts[st] = (counts[st] || 0) + 1
     })
-    return Object.entries(counts).map(([name, value]) => ({ name: name.replace(/_/g, ' '), value }))
+    return Object.entries(counts).map(([name, value]) => ({
+      name: name.replace(/_/g, ' '),
+      value,
+      color: STATUS_PIE_COLORS[name] || STATUS_PIE_COLORS[name.replace(/_/g, ' ')] || DEFAULT_PIE_COLOR,
+    }))
   }, [monthSheets])
 
   /* ── Summary stats for selected month ── */
@@ -472,8 +492,8 @@ export default function MonthlyInsights() {
                   <PieChart>
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={90}
                       paddingAngle={3} dataKey="value" animationBegin={0} animationDuration={800}>
-                      {pieData.map((_, idx) => (
-                        <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      {pieData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
                     <RechartsTooltip contentStyle={{ borderRadius: 8, border: '1px solid #e5e0d8' }} />

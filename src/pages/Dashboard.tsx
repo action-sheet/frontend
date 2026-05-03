@@ -399,17 +399,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Stat Cards (Visible to ALL users) ── */}
+      {/* ── Stat Cards (Visible to ALL users) — ALL clickable ── */}
       <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
         {[
-          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)', clickable: false },
-          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)', clickable: false },
-          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)', clickable: false },
-          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)', clickable: false },
-          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)', clickable: true },
+          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)', route:'/repository' },
+          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)', route:'/?filter=DRAFT' },
+          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)', route:'/insights' },
+          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)', route:'/insights' },
+          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)', route:'/conflicts' },
         ].map(s => (
-          <div className={`stat-card fade-in-up ${s.clickable ? 'stat-card--clickable' : ''}`} key={s.label}
-            onClick={s.clickable ? () => navigate('/conflicts') : undefined}>
+          <div className="stat-card fade-in-up stat-card--clickable" key={s.label}
+            onClick={() => navigate(s.route)}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
                 <div className="stat-value" style={{ color:s.color }}>{s.value}</div>

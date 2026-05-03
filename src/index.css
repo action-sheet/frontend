@@ -152,6 +152,33 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* Clickable stat card */
+.stat-card--clickable {
+  cursor: pointer;
+  position: relative;
+}
+.stat-card--clickable::after {
+  content: '→';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 0.65rem;
+  color: transparent;
+  transition: all 0.25s var(--ease);
+}
+.stat-card--clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  border-color: var(--accent) !important;
+}
+.stat-card--clickable:hover::after {
+  color: var(--text-muted);
+}
+.stat-card--clickable:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
 /* ── Action Bar ── */
 .action-bar {
   display: flex;
