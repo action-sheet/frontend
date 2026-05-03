@@ -280,7 +280,7 @@ export default function EmailResponse() {
               justifyContent: 'center',
             }}>
               <img
-                src="/acg_logo.jpg"
+                src="/acg_logo_hq.ico"
                 alt="Al-Ahlia Contracting Group"
                 style={{
                   width: '100%',
@@ -543,7 +543,7 @@ export default function EmailResponse() {
             gap: 6,
           }}>
             <img
-              src="/acg_logo.jpg"
+              src="/acg_logo_hq.ico"
               alt=""
               style={{
                 width: 16,

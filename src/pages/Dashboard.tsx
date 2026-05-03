@@ -81,6 +81,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [, setSearchTerm] = useState('')
   const [initialLoad, setInitialLoad] = useState(true)
+  const [activeFilter, setActiveFilter] = useState<string | null>(null)
 
   // Role checks
   const isExm = user?.role?.toLowerCase() === "ex.m's"
@@ -182,6 +183,17 @@ export default function Dashboard() {
       return dateB - dateA
     })
   }, [sheets])
+
+  /* Apply stat card filter */
+  const filteredSheets = useMemo(() => {
+    if (!activeFilter) return sortedSheets
+    switch (activeFilter) {
+      case 'DRAFT': return sortedSheets.filter(s => s.workflowState === 'DRAFT')
+      case 'ACTIVE': return sortedSheets.filter(s => ['IN_PROGRESS','PENDING_REVIEW'].includes(s.workflowState))
+      case 'COMPLETED': return sortedSheets.filter(s => s.workflowState === 'COMPLETED')
+      default: return sortedSheets
+    }
+  }, [sortedSheets, activeFilter])
 
   // Helper: Check if all recipients are info-only
   const isInformationalOnly = (sheet: ActionSheet) => {
@@ -402,14 +414,15 @@ export default function Dashboard() {
       {/* ── Stat Cards (Visible to ALL users) — ALL clickable ── */}
       <div className="stagger responsive-grid-5" style={{ marginBottom:20 }}>
         {[
-          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)', route:'/repository' },
-          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)', route:'/?filter=DRAFT' },
-          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)', route:'/insights' },
-          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)', route:'/insights' },
-          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)', route:'/conflicts' },
+          { label:'Total', value:stats.total, icon:<FileTextOutlined />, color:'var(--accent)', filterKey: null },
+          { label:'Drafts', value:stats.drafts, icon:<EditOutlined />, color:'var(--warning)', filterKey: 'DRAFT' },
+          { label:'Active', value:stats.inProgress, icon:<ClockCircleOutlined />, color:'var(--info)', filterKey: 'ACTIVE' },
+          { label:'Completed', value:stats.completed, icon:<CheckCircleOutlined />, color:'var(--success)', filterKey: 'COMPLETED' },
+          { label:'Conflicts', value:stats.conflicts, icon:<ThunderboltOutlined />, color:'var(--danger)', filterKey: 'CONFLICTS' },
         ].map(s => (
-          <div className="stat-card fade-in-up stat-card--clickable" key={s.label}
-            onClick={() => navigate(s.route)}>
+          <div className={`stat-card fade-in-up stat-card--clickable ${activeFilter === s.filterKey || (s.filterKey === null && !activeFilter) ? 'stat-card--active' : ''}`} key={s.label}
+            onClick={() => s.filterKey === 'CONFLICTS' ? navigate('/conflicts') : setActiveFilter(prev => prev === s.filterKey ? null : s.filterKey)}
+            style={activeFilter === s.filterKey ? { borderColor: s.color === 'var(--accent)' ? '#2563eb' : s.color === 'var(--warning)' ? '#d97706' : s.color === 'var(--info)' ? '#2563eb' : s.color === 'var(--success)' ? '#16a34a' : '#dc2626', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' } : undefined}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
                 <div className="stat-value" style={{ color:s.color }}>{s.value}</div>
@@ -427,6 +440,21 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Active filter indicator */}
+      {activeFilter && (
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeIn 0.25s ease both' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>Showing:</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-muted)', padding: '3px 10px', borderRadius: 5 }}>
+            {activeFilter === 'DRAFT' ? 'Drafts' : activeFilter === 'ACTIVE' ? 'Active' : 'Completed'}
+          </span>
+          <button onClick={() => setActiveFilter(null)} style={{
+            background: 'none', border: '1px solid var(--border)', borderRadius: 5,
+            padding: '2px 8px', fontSize: '0.72rem', color: 'var(--text-muted)',
+            cursor: 'pointer', fontWeight: 500, transition: 'all 0.15s',
+          }}>✕ Clear</button>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="action-bar">
@@ -450,7 +478,7 @@ export default function Dashboard() {
             )}
           </div>
         ) : (
-          <Table columns={columns} dataSource={sortedSheets} rowKey="id" loading={isLoading}
+          <Table columns={columns} dataSource={filteredSheets} rowKey="id" loading={isLoading}
             pagination={{ pageSize:20, showSizeChanger:true, showTotal: t => <span style={{color:'var(--text-muted)'}}>{t} sheets</span> }}
             size="middle"
             onRow={r => ({
