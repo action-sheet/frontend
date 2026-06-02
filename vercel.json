@@ -1,7 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "https://batman-sagem-crew-photo.trycloudflare.com",
-    "VITE_WS_URL": "wss://batman-sagem-crew-photo.trycloudflare.com/ws-direct"
+    "VITE_API_URL": "https://qui-abroad-branches-vision.trycloudflare.com",
+    "VITE_WS_URL": "wss://qui-abroad-branches-vision.trycloudflare.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
