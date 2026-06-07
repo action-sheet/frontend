@@ -1,7 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "https://qui-abroad-branches-vision.trycloudflare.com",
-    "VITE_WS_URL": "wss://qui-abroad-branches-vision.trycloudflare.com/ws-direct"
+    "VITE_API_URL": "https://neither-demonstrates-belts-rim.trycloudflare.com",
+    "VITE_WS_URL": "wss://neither-demonstrates-belts-rim.trycloudflare.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
