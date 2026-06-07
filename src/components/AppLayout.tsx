@@ -17,6 +17,7 @@ import {
   DeleteOutlined,
   BarChartOutlined,
   AlertOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 import { projectsApi, reviewHubApi } from '../api/client'
@@ -302,27 +303,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sider>
 
       <Layout style={{ marginLeft: contentMarginLeft, transition: 'margin-left 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)' }}>
-        {/* Beige Gradient Header — matches legacy */}
+        {/* Premium Header */}
         <Header
           style={{
-            background: 'linear-gradient(135deg, #d2bea0, #b9a587)',
-            borderBottom: '1px solid #a89878',
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
             padding: isMobile ? '0 12px' : '0 24px',
-            height: 54,
+            height: 60,
+            lineHeight: '60px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             position: 'sticky',
             top: 0,
             zIndex: 9,
+            overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <Button
               type="text"
               icon={collapsed && !isMobile ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={toggleSidebar}
-              style={{ color: '#503820', fontSize: 16 }}
+              style={{ color: '#111827', fontSize: 16 }}
             />
             {!isMobile && (
               <Button
@@ -331,12 +335,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => navigate('/')}
                 style={{
                   fontWeight: 600,
-                  fontSize: '0.82rem',
-                  color: location.pathname === '/' ? 'white' : '#503820',
-                  background: location.pathname === '/' ? '#800000' : 'transparent',
-                  borderColor: location.pathname === '/' ? '#800000' : 'transparent',
-                  borderRadius: 6,
-                  height: 34,
+                  fontSize: '0.85rem',
+                  color: location.pathname === '/' ? 'white' : '#4B5563',
+                  background: location.pathname === '/' ? '#111827' : 'transparent',
+                  borderColor: location.pathname === '/' ? '#111827' : 'transparent',
+                  borderRadius: 8,
+                  height: 36,
                 }}
               >
                 Dashboard
@@ -345,34 +349,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div id="navbar-actions" style={{ marginLeft: 4 }}></div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
-            <span className="live-dot" />
-            {!isMobile && (
-              <span style={{ fontSize: '0.78rem', color: '#5a4030', marginRight: 12 }}>
-                Connected
-              </span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', padding: '4px 10px', borderRadius: '16px', border: '1px solid #DCFCE7' }}>
+              <span className="live-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 2px #DCFCE7' }} />
+              {!isMobile && (
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#166534' }}>
+                  Connected
+                </span>
+              )}
+            </div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
-              <Button
-                type="text"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8,
-                  height: 38, padding: isMobile ? '4px 6px' : '4px 12px', borderRadius: 8,
-                  color: '#3a2a18',
-                }}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '4px 8px', borderRadius: 24,
+                cursor: 'pointer', transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F3F4F6'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <Avatar
-                  size={26}
-                  style={{ background: '#800000', fontSize: 11, fontWeight: 600 }}
+                  size={32}
+                  style={{ background: '#111827', fontSize: 13, fontWeight: 600, color: 'white' }}
                 >
                   {user?.name?.[0]?.toUpperCase() || 'U'}
                 </Avatar>
                 {!isMobile && (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                    {user?.name || 'User'}
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                    {user?.name || 'User'} <span style={{ fontSize: '10px' }}>▼</span>
                   </span>
                 )}
-              </Button>
+              </div>
             </Dropdown>
           </div>
         </Header>

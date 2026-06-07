@@ -272,6 +272,10 @@ export const repositoryApi = {
     api.delete(`/api/repository/documents/${dateKey}/${docId}`),
   restoreDocument: (dateKey: string, docId: string) =>
     api.post(`/api/repository/restore/${dateKey}/${docId}`),
+  updateDocumentMetadata: (dateKey: string, docId: string, updates: any) =>
+    api.put(`/api/repository/documents/${dateKey}/${docId}`, updates),
+  searchDocuments: (query: string) =>
+    api.get(`/api/repository/search`, { params: { q: query } }),
 };
 
 // ========== GM Review Hub API ==========
