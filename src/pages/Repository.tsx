@@ -304,6 +304,16 @@ export default function Repository() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .repo-main-grid {
+          padding: 32px 40px;
+          display: grid;
+          grid-template-columns: 300px 1fr;
+          gap: 32px;
+          flex: 1;
+          overflow: hidden;
         }
         .repo-card {
           background: #FFFFFF;
@@ -338,6 +348,50 @@ export default function Repository() {
           bottom: 0;
           width: 4px;
         }
+        .doc-name {
+          font-weight: 600;
+          font-size: 15px;
+          color: #111827;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 350px;
+        }
+        .doc-meta-row {
+          font-size: 12px;
+          color: #6B7280;
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .doc-title-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 4px;
+          flex-wrap: wrap;
+        }
+        .doc-actions {
+          display: flex;
+          gap: 4px;
+          flex-shrink: 0;
+          align-items: center;
+        }
+        .header-controls {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .header-search-input {
+          width: 320px;
+          border-radius: 20px;
+          background: #F3F4F6;
+          border: 1px solid transparent;
+          box-shadow: none;
+          padding: 6px 16px;
+        }
         /* Minimal Calendar Overrides */
         .premium-repo .ant-picker-calendar { background: transparent !important; }
         .premium-repo .ant-picker-calendar-header { padding: 4px 12px 12px 12px !important; }
@@ -350,12 +404,159 @@ export default function Repository() {
         .upload-zone:hover { border-color: #3B82F6; background: #EFF6FF; }
         .controls-pill {
           background: #FFFFFF; border: 1px solid rgba(0,0,0,0.06); border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #4B5563;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; display: inline-flex; alignItems: center; gap: 8px; transition: all 0.2s;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+          white-space: nowrap;
         }
         .controls-pill:hover { background: #F9FAFB; }
         
         .scrollable-feed::-webkit-scrollbar { width: 6px; }
         .scrollable-feed::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+
+        .repo-sidebar {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          height: 100%;
+        }
+
+        /* ===== TABLET (≤1024px) ===== */
+        @media (max-width: 1024px) {
+          .repo-sticky-header {
+            padding: 16px 20px;
+          }
+          .repo-main-grid {
+            grid-template-columns: 260px 1fr;
+            padding: 24px 20px;
+            gap: 24px;
+          }
+          .header-search-input {
+            width: 240px;
+          }
+          .doc-name {
+            max-width: 220px;
+          }
+        }
+
+        /* ===== SMALL TABLET / LARGE PHONE (≤768px) ===== */
+        @media (max-width: 768px) {
+          .repo-sticky-header {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 14px 16px;
+            gap: 10px;
+          }
+          .repo-sticky-header > div:first-child h1 {
+            font-size: 20px !important;
+          }
+          .repo-sticky-header > div:first-child h1 .anticon {
+            font-size: 22px !important;
+          }
+          .repo-sticky-header > div:first-child p {
+            margin-left: 0 !important;
+            font-size: 12px !important;
+          }
+          .header-controls {
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .header-search-input {
+            width: 100% !important;
+            min-width: 0;
+          }
+          .repo-main-grid {
+            grid-template-columns: 1fr;
+            padding: 16px;
+            gap: 16px;
+            overflow-y: auto;
+          }
+          .repo-sidebar {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 12px;
+            height: auto;
+            order: 2;
+          }
+          .repo-sidebar > .repo-card:first-child {
+            flex: 1;
+            min-width: 250px;
+          }
+          .repo-sidebar > div:last-child {
+            flex: 1;
+            min-width: 200px;
+          }
+          .scrollable-feed {
+            order: 1;
+          }
+          .doc-row {
+            padding: 12px 14px;
+          }
+          .doc-name {
+            max-width: 180px;
+            font-size: 14px;
+          }
+          .doc-meta-row {
+            gap: 8px;
+            font-size: 11px;
+          }
+          .doc-title-row {
+            gap: 8px;
+          }
+        }
+
+        /* ===== PHONE (≤480px) ===== */
+        @media (max-width: 480px) {
+          .repo-sticky-header {
+            padding: 12px 12px;
+          }
+          .repo-sticky-header > div:first-child h1 {
+            font-size: 17px !important;
+            gap: 8px !important;
+          }
+          .repo-sticky-header > div:first-child h1 .anticon {
+            font-size: 20px !important;
+          }
+          .header-controls {
+            gap: 6px;
+          }
+          .controls-pill {
+            padding: 5px 10px;
+            font-size: 12px;
+          }
+          .repo-main-grid {
+            padding: 12px 10px;
+            gap: 12px;
+          }
+          .repo-sidebar {
+            flex-direction: column;
+          }
+          .repo-sidebar > .repo-card:first-child,
+          .repo-sidebar > div:last-child {
+            min-width: 0;
+          }
+          .doc-row {
+            padding: 10px 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .doc-name {
+            max-width: calc(100vw - 120px);
+            font-size: 13px;
+          }
+          .doc-meta-row {
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+          .doc-actions {
+            width: 100%;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(0,0,0,0.04);
+            padding-top: 8px;
+            margin-top: 4px;
+          }
+          .upload-zone {
+            padding: 14px;
+          }
+        }
       `}</style>
 
       {/* STICKY REPOSITORY HEADER */}
@@ -370,13 +571,14 @@ export default function Repository() {
           </p>
         </div>
         
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div className="header-controls">
           <Input 
+            className="header-search-input"
             prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />} 
             placeholder="Search documents, tags, types..." 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            style={{ width: 320, borderRadius: 20, background: '#F3F4F6', border: '1px solid transparent', boxShadow: 'none', padding: '6px 16px' }}
+            style={{ borderRadius: 20, background: '#F3F4F6', border: '1px solid transparent', boxShadow: 'none', padding: '6px 16px' }}
             allowClear
           />
           
@@ -404,10 +606,10 @@ export default function Repository() {
         </div>
       </div>
 
-      <div style={{ padding: '32px 40px', display: 'grid', gridTemplateColumns: '300px 1fr', gap: 32, flex: 1, overflow: 'hidden' }}>
+      <div className="repo-main-grid" style={{ flex: 1 }}>
         
         {/* LEFT SIDEBAR (Fixed/Non-Scrolling) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+        <div className="repo-sidebar">
           
           <div className="repo-card" style={{ padding: '12px' }}>
             <Calendar
@@ -525,9 +727,9 @@ export default function Repository() {
                     {getFileIcon(doc.fileName)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, marginLeft: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+                    <div className="doc-title-row">
                       <Tooltip title={doc.originalName}>
-                        <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '350px' }}>
+                        <div className="doc-name">
                           {doc.originalName.replace(/\.[^/.]+$/, "")}
                         </div>
                       </Tooltip>
@@ -559,7 +761,7 @@ export default function Repository() {
                       </div>
                     )}
                     
-                    <div style={{ fontSize: '12px', color: '#6B7280', display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <div className="doc-meta-row">
                       {doc.documentNumber && <span><strong style={{color:'#4B5563'}}>ID:</strong> {doc.documentNumber}</span>}
                       {doc.customerName && <span><strong style={{color:'#4B5563'}}>Cust:</strong> {doc.customerName}</span>}
                       <span>{formatSize(doc.fileSize)}</span>
@@ -567,7 +769,7 @@ export default function Repository() {
                       <span>{dayjs(doc.uploadTimestamp).format('hh:mm A')}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+                  <div className="doc-actions">
                     <Tooltip title="Preview">
                       <Button type="text" style={{ color: '#6B7280' }} icon={<EyeOutlined />} onClick={() => handleOpen(doc)} />
                     </Tooltip>
