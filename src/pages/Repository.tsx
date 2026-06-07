@@ -287,7 +287,7 @@ export default function Repository() {
   const projectsCount = docs.length > 0 ? Math.min(3, docs.length) : 0; 
 
   return (
-    <div className="premium-repo fade-in" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)' }}>
+    <div className="premium-repo fade-in" style={{ padding: '0', display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'auto' }}>
       <style>{`
         .premium-repo {
           background-color: var(--bg-primary);
@@ -307,13 +307,29 @@ export default function Repository() {
           flex-wrap: wrap;
           gap: 12px;
         }
+        .repo-header-title-section h1 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #111827;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .repo-header-title-section p {
+          font-size: 13px;
+          color: #6B7280;
+          margin: 4px 0 0 40px;
+          font-weight: 400;
+        }
         .repo-main-grid {
           padding: 32px 40px;
           display: grid;
           grid-template-columns: 300px 1fr;
           gap: 32px;
           flex: 1;
-          overflow: hidden;
+          min-height: 0;
+          overflow: auto;
         }
         .repo-card {
           background: #FFFFFF;
@@ -417,81 +433,83 @@ export default function Repository() {
           flex-direction: column;
           gap: 16px;
           height: 100%;
+          min-width: 0;
         }
 
-        /* ===== TABLET (≤1024px) ===== */
-        @media (max-width: 1024px) {
+        /* ===== NARROW DESKTOP / TABLET (≤1100px) — sidebar shrinks ===== */
+        @media (max-width: 1100px) {
           .repo-sticky-header {
             padding: 16px 20px;
           }
           .repo-main-grid {
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 250px 1fr;
             padding: 24px 20px;
-            gap: 24px;
+            gap: 20px;
           }
           .header-search-input {
-            width: 240px;
+            width: 220px;
           }
           .doc-name {
-            max-width: 220px;
+            max-width: 200px;
           }
         }
 
-        /* ===== SMALL TABLET / LARGE PHONE (≤768px) ===== */
-        @media (max-width: 768px) {
+        /* ===== TABLET (≤900px) — go single column, sidebar below ===== */
+        @media (max-width: 900px) {
           .repo-sticky-header {
             flex-direction: column;
             align-items: stretch;
             padding: 14px 16px;
             gap: 10px;
           }
-          .repo-sticky-header > div:first-child h1 {
+          .repo-header-title-section h1 {
             font-size: 20px !important;
           }
-          .repo-sticky-header > div:first-child h1 .anticon {
+          .repo-header-title-section h1 .anticon {
             font-size: 22px !important;
           }
-          .repo-sticky-header > div:first-child p {
+          .repo-header-title-section p {
             margin-left: 0 !important;
             font-size: 12px !important;
           }
           .header-controls {
             gap: 8px;
-            flex-wrap: wrap;
+            width: 100%;
           }
           .header-search-input {
             width: 100% !important;
+            flex: 1;
             min-width: 0;
           }
           .repo-main-grid {
             grid-template-columns: 1fr;
             padding: 16px;
             gap: 16px;
-            overflow-y: auto;
           }
           .repo-sidebar {
+            order: 2;
             flex-direction: row;
             flex-wrap: wrap;
             gap: 12px;
             height: auto;
-            order: 2;
           }
           .repo-sidebar > .repo-card:first-child {
-            flex: 1;
-            min-width: 250px;
+            flex: 1 1 260px;
+            min-width: 0;
           }
           .repo-sidebar > div:last-child {
-            flex: 1;
-            min-width: 200px;
+            flex: 1 1 200px;
+            min-width: 0;
           }
           .scrollable-feed {
             order: 1;
+            overflow: visible !important;
           }
           .doc-row {
             padding: 12px 14px;
           }
           .doc-name {
-            max-width: 180px;
+            max-width: calc(100% - 40px);
             font-size: 14px;
           }
           .doc-meta-row {
@@ -503,16 +521,16 @@ export default function Repository() {
           }
         }
 
-        /* ===== PHONE (≤480px) ===== */
-        @media (max-width: 480px) {
+        /* ===== SMALL TABLET (≤650px) ===== */
+        @media (max-width: 650px) {
           .repo-sticky-header {
             padding: 12px 12px;
           }
-          .repo-sticky-header > div:first-child h1 {
-            font-size: 17px !important;
+          .repo-header-title-section h1 {
+            font-size: 18px !important;
             gap: 8px !important;
           }
-          .repo-sticky-header > div:first-child h1 .anticon {
+          .repo-header-title-section h1 .anticon {
             font-size: 20px !important;
           }
           .header-controls {
@@ -521,6 +539,7 @@ export default function Repository() {
           .controls-pill {
             padding: 5px 10px;
             font-size: 12px;
+            gap: 4px;
           }
           .repo-main-grid {
             padding: 12px 10px;
@@ -529,44 +548,74 @@ export default function Repository() {
           .repo-sidebar {
             flex-direction: column;
           }
-          .repo-sidebar > .repo-card:first-child,
-          .repo-sidebar > div:last-child {
-            min-width: 0;
-          }
           .doc-row {
             padding: 10px 12px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
           }
           .doc-name {
-            max-width: calc(100vw - 120px);
+            max-width: calc(100vw - 100px);
             font-size: 13px;
           }
           .doc-meta-row {
             gap: 6px;
-            flex-wrap: wrap;
           }
           .doc-actions {
             width: 100%;
             justify-content: flex-end;
             border-top: 1px solid rgba(0,0,0,0.04);
-            padding-top: 8px;
-            margin-top: 4px;
+            padding-top: 6px;
+            margin-top: 2px;
           }
           .upload-zone {
             padding: 14px;
+          }
+        }
+
+        /* ===== PHONE (≤420px) ===== */
+        @media (max-width: 420px) {
+          .repo-sticky-header {
+            padding: 10px 8px;
+          }
+          .repo-header-title-section h1 {
+            font-size: 16px !important;
+          }
+          .repo-header-title-section p {
+            font-size: 11px !important;
+          }
+          .repo-main-grid {
+            padding: 8px 6px;
+            gap: 10px;
+          }
+          .header-search-input {
+            font-size: 13px !important;
+          }
+          .controls-pill {
+            padding: 4px 8px;
+            font-size: 11px;
+          }
+          .doc-row {
+            padding: 8px 10px;
+          }
+          .doc-name {
+            max-width: calc(100vw - 80px);
+            font-size: 12px;
+          }
+          .doc-meta-row {
+            font-size: 10px;
+            gap: 4px;
           }
         }
       `}</style>
 
       {/* STICKY REPOSITORY HEADER */}
       <div className="repo-sticky-header">
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <FolderOpenOutlined style={{ color: '#111827', fontSize: '28px' }} />
+        <div className="repo-header-title-section">
+          <h1>
+            <FolderOpenOutlined style={{ color: '#111827' }} />
             Document Repository
           </h1>
-          <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 0 40px', fontWeight: 400 }}>
+          <p>
             {docs.length} documents • {projectsCount} projects • AI Tagging Enabled
           </p>
         </div>
