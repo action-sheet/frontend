@@ -287,11 +287,15 @@ export default function Repository() {
   const projectsCount = docs.length > 0 ? Math.min(3, docs.length) : 0; 
 
   return (
-    <div className="premium-repo fade-in" style={{ padding: '0', display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%', overflow: 'auto' }}>
+    <div className="premium-repo fade-in">
       <style>{`
         .premium-repo {
           background-color: var(--bg-primary);
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          flex-direction: column;
+          height: calc(100vh - 60px);
+          overflow: hidden;
         }
         .repo-sticky-header {
           position: sticky;
@@ -329,7 +333,7 @@ export default function Repository() {
           gap: 32px;
           flex: 1;
           min-height: 0;
-          overflow: auto;
+          overflow: hidden;
         }
         .repo-card {
           background: #FFFFFF;
@@ -425,8 +429,10 @@ export default function Repository() {
         }
         .controls-pill:hover { background: #F9FAFB; }
         
-        .scrollable-feed::-webkit-scrollbar { width: 6px; }
-        .scrollable-feed::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+        .scrollable-feed::-webkit-scrollbar,
+        .repo-sidebar::-webkit-scrollbar { width: 6px; }
+        .scrollable-feed::-webkit-scrollbar-thumb,
+        .repo-sidebar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
 
         .repo-sidebar {
           display: flex;
@@ -434,6 +440,9 @@ export default function Repository() {
           gap: 16px;
           height: 100%;
           min-width: 0;
+          overflow-y: auto;
+          padding-right: 8px;
+          padding-bottom: 32px;
         }
 
         /* ===== NARROW DESKTOP / TABLET (≤1100px) — sidebar shrinks ===== */
