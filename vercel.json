@@ -1,7 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "https://seafood-drill-adam-indicators.trycloudflare.com",
-    "VITE_WS_URL": "wss://seafood-drill-adam-indicators.trycloudflare.com/ws-direct"
+    "VITE_API_URL": "https://postage-retention-kurt-dim.trycloudflare.com",
+    "VITE_WS_URL": "wss://postage-retention-kurt-dim.trycloudflare.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
