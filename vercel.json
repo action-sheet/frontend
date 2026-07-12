@@ -1,7 +1,7 @@
 {
   "env": {
-    "VITE_API_URL": "https://passenger-files-lancaster-subdivision.trycloudflare.com",
-    "VITE_WS_URL": "wss://passenger-files-lancaster-subdivision.trycloudflare.com/ws-direct"
+    "VITE_API_URL": "https://str-quantities-directory-picks.trycloudflare.com",
+    "VITE_WS_URL": "wss://str-quantities-directory-picks.trycloudflare.com/ws-direct"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }

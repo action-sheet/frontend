@@ -81,8 +81,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const fetchProjects = useCallback(async () => {
     try {
       const res = await projectsApi.getAll()
+      console.log('[DEBUG] fetchProjects response:', res.status, JSON.stringify(res.data))
       setProjects(res.data || [])
-    } catch { /* silently fail */ }
+    } catch (e: unknown) {
+      console.error('[DEBUG] fetchProjects FAILED:', e)
+    }
   }, [])
 
   useEffect(() => { fetchProjects() }, [fetchProjects])
