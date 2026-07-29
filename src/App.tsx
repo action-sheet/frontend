@@ -3,6 +3,7 @@ import { ConfigProvider, App as AntApp } from 'antd'
 import { useAuthStore } from './store'
 import { useWebSocket } from './hooks/useWebSocket'
 import AppLayout from './components/AppLayout'
+import WelcomePanel from './components/WelcomePanel'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import SheetDetail from './pages/SheetDetail'
@@ -30,6 +31,7 @@ function AuthenticatedApp() {
       <Route path="/print" element={<PrintView />} />
       <Route path="/*" element={
         <AppLayout>
+          <WelcomePanel />
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
