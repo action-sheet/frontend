@@ -4,8 +4,8 @@
     "VITE_WS_URL": ""
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://catherine-britain-treatments-uni.trycloudflare.com/api/:path*" },
-    { "source": "/ws-direct", "destination": "https://catherine-britain-treatments-uni.trycloudflare.com/ws-direct" },
+    { "source": "/api/:path*", "destination": "https://api.ahliacontracting.info/api/:path*" },
+    { "source": "/ws-direct", "destination": "https://api.ahliacontracting.info/ws-direct" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
