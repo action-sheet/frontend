@@ -65,6 +65,11 @@ export const sheetsApi = {
   send: (id: string) =>
     api.post(`/api/sheets/${id}/send`),
 
+  // Completes a deferred send. Call only after the sheet body AND its
+  // attachments have finished saving - this is what actually mails recipients.
+  finalizeSend: (id: string) =>
+    api.post(`/api/sheets/${id}/finalize-send`),
+
   respond: (id: string, data: {
     email: string;
     response: string;

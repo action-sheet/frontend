@@ -835,7 +835,14 @@ export default function SheetForm() {
         }
       }
 
-      // Step 3: If editing an already-sent sheet, trigger resend to re-notify recipients
+      // Step 3: Everything is saved - release the email.
+      // Idempotent: if the attachment upload already released it, this is a
+      // no-op rather than a second email to every recipient.
+      if (sheetId && !isResend) {
+        await sheetsApi.finalizeSend(sheetId)
+      }
+
+      // Step 4: If editing an already-sent sheet, trigger resend to re-notify recipients
       if (isResend && sheetId) {
         try {
           await sheetsApi.resend(sheetId)
