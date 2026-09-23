@@ -69,6 +69,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         department: data.department || '',
         hierarchyLevel: data.hierarchyLevel || 5,
       };
+      // The token is what authorises every later API call. Without it the
+      // backend rejects requests with 401, so store it before marking the
+      // user as signed in.
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+      }
       localStorage.setItem('user', JSON.stringify(user));
       set({ user, isLoading: false });
       return true;
@@ -81,6 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
     set({ user: null });
   },
 

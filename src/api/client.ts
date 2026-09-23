@@ -13,6 +13,13 @@ const api = axios.create({
 
 // Request interceptor for auth
 api.interceptors.request.use((config) => {
+  // Identity now travels as a signed token the server verifies. The old
+  // X-User-Email header is still sent for endpoints that read it for
+  // display purposes, but it is no longer what grants access.
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
   const user = localStorage.getItem('user');
   if (user) {
     const parsed = JSON.parse(user);
@@ -26,7 +33,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Token missing, expired or rejected - clear it so the next sign-in
+      // issues a fresh one rather than replaying a dead token.
       localStorage.removeItem('user');
+      localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
     return Promise.reject(error);
