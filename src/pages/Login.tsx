@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, message } from 'antd'
 import { ArrowRightOutlined, LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store'
-import MaintenanceBanner from '../components/MaintenanceBanner'
 
 export default function Login() {
   const [loading, setLoading] = useState(false)
@@ -46,7 +45,6 @@ export default function Login() {
         background: 'linear-gradient(160deg, #faf8f5 0%, #f0ebe4 50%, #e8e0d4 100%)',
       }}
     >
-      <MaintenanceBanner floating />
       <div
         className="fade-in login-card"
         style={{

@@ -21,7 +21,6 @@ import {
 } from '@ant-design/icons'
 import { useAuthStore } from '../store'
 import { projectsApi, reviewHubApi } from '../api/client'
-import MaintenanceBanner from './MaintenanceBanner'
 
 const { Sider, Content, Header } = Layout
 
@@ -388,7 +387,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Header>
 
         <Content style={{ background: 'var(--bg-primary)' }}>
-          <MaintenanceBanner />
           {children}
         </Content>
       </Layout>
