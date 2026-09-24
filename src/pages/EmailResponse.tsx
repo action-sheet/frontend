@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import MaintenanceBanner from '../components/MaintenanceBanner'
 
 /**
  * EmailResponse — Standalone page that processes email response clicks.
@@ -234,6 +235,7 @@ export default function EmailResponse() {
       fontFamily: "'Segoe UI', -apple-system, Arial, sans-serif",
       padding: '20px',
     }}>
+      <MaintenanceBanner floating />
       <div style={{
         background: 'white',
         borderRadius: 20,
