@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { repositoryApi } from '../api/client'
+import { repositoryApi, openBlob, saveBlob } from '../api/client'
 
 interface RepoDocument {
   id: string
@@ -205,20 +205,30 @@ export default function Repository() {
     message.success(`${doc.originalName} restored`)
   }
 
-  const handleOpen = (doc: RepoDocument) => {
-    const url = repositoryApi.downloadUrl(dateKey, doc.fileName)
-    window.open(url, '_blank')
+  // Documents are fetched with the login token, then opened or saved from
+  // memory. Opening the API address directly is refused without the token.
+  const handleOpen = async (doc: RepoDocument) => {
+    const hide = message.loading('Opening...', 0)
+    try {
+      const blob = await repositoryApi.fetchDocument(dateKey, doc.fileName)
+      hide()
+      openBlob(blob, () => message.error('Pop-up blocked. Please allow pop-ups for this site.'))
+    } catch {
+      hide()
+      message.error('Could not open the document. Please try again.')
+    }
   }
 
-  const handleDownload = (doc: RepoDocument) => {
-    const url = repositoryApi.downloadUrl(dateKey, doc.fileName)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = doc.originalName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    message.success('Downloading...')
+  const handleDownload = async (doc: RepoDocument) => {
+    const hide = message.loading('Downloading...', 0)
+    try {
+      const blob = await repositoryApi.fetchDocument(dateKey, doc.fileName)
+      hide()
+      saveBlob(blob, doc.originalName)
+    } catch {
+      hide()
+      message.error('Could not download the document. Please try again.')
+    }
   }
 
   const handleShare = (doc: RepoDocument) => {

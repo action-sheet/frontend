@@ -12,8 +12,6 @@ import { ActionSheet } from '../store'
 const GRID_HEADERS = ['', 'G.M.', 'D. GM', "EX. M's", 'ACC.', 'PM / PE', 'M.C.', 'L.A.', 'O.M.', 'E/M', 'PL. E', 'Others', '']
 const GRID_COL_WIDTHS = [80, 32, 32, 32, 32, 42, 32, 32, 32, 32, 32, 40, 50]
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
-
 export default function PrintView() {
   const [sheets, setSheets] = useState<ActionSheet[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,19 +45,9 @@ export default function PrintView() {
           const sheetsWithPdf = validSheets.filter((s: ActionSheet) => s.pdfPath)
           if (sheetsWithPdf.length > 0) {
             try {
-              const pdfPath = sheetsWithPdf[0].pdfPath!
-              const pdfUrl = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-              const response = await fetch(pdfUrl, {
-                method: 'GET',
-                headers: {
-                  'ngrok-skip-browser-warning': 'true',
-                  'Accept': 'application/pdf',
-                },
-              })
-              if (response.ok) {
-                const blob = await response.blob()
-                setPdfBlobUrl(URL.createObjectURL(blob))
-              }
+              // Fetched with the login token - a plain fetch() is refused.
+              const blob = await sheetsApi.fetchPdf(sheetsWithPdf[0].pdfPath!)
+              setPdfBlobUrl(URL.createObjectURL(blob))
             } catch (pdfErr) {
               console.error('Failed to fetch PDF for printing:', pdfErr)
             }

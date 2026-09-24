@@ -30,7 +30,15 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Sliding session: while someone is using the app the server hands back
+    // a renewed token, so an active user is never sent to the login screen.
+    const renewed = response.headers?.['x-auth-token'];
+    if (renewed) {
+      localStorage.setItem('authToken', renewed);
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Token missing, expired or rejected - clear it so the next sign-in
@@ -42,6 +50,41 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Files (PDFs, repository documents) are fetched through the same client as
+// everything else, so the login token goes with them. A plain fetch() or a
+// window.open() straight to the API cannot carry the token and is refused
+// with "Authentication required".
+const FILE_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function fetchFile(path: string, params?: Record<string, string>): Promise<Blob> {
+  const res = await api.get(path, { params, responseType: 'blob', timeout: FILE_TIMEOUT_MS });
+  return res.data as Blob;
+}
+
+/** Opens a downloaded file in the desktop app's PDF window or a new browser tab. */
+export function openBlob(blob: Blob, onBlocked: () => void) {
+  const blobUrl = URL.createObjectURL(blob);
+  const newWindow = window.open(blobUrl, '_blank');
+  // The desktop app catches blob URLs itself and opens its own PDF window,
+  // so window.open() returns null there without anything being blocked.
+  if (!newWindow && !navigator.userAgent.includes('Electron')) {
+    onBlocked();
+  }
+  // Keep the file available long enough for the viewer to load it.
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+}
+
+export function saveBlob(blob: Blob, fileName: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
 
 // ========== Action Sheet API ==========
 export const sheetsApi = {
@@ -100,83 +143,39 @@ export const sheetsApi = {
   fileUrl: (fileName: string) =>
     `${API_BASE}/api/sheets/files/${encodeURIComponent(fileName)}`,
 
-  // Helper to open PDF in new tab — fetches with ngrok bypass header,
-  // shows download progress, then opens via blob URL (fast + no ngrok warning)
+  /** Fetches a sheet's generated PDF with the login token. */
+  fetchPdf: (pdfPath: string) =>
+    fetchFile('/api/projects/serve-file', { path: pdfPath }),
+
+  // Opens the PDF in the desktop app's PDF window, or a new browser tab.
   openPdf: async (pdfPath: string) => {
     const { message } = await import('antd')
-
-    const pdfUrl = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-
-    // For Electron: use fetch+blob so Electron opens it in a PDF popup window
-    // For Web: also use fetch+blob to bypass ngrok warning and show progress
     const hideLoading = message.loading('Opening PDF...', 0)
 
     try {
-      const response = await fetch(pdfUrl, {
-        method: 'GET',
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Accept': 'application/pdf',
-        },
-      })
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-
-      const blob = await response.blob()
-      const blobUrl = URL.createObjectURL(blob)
-
+      const blob = await fetchFile('/api/projects/serve-file', { path: pdfPath })
       hideLoading()
-
-      // Open blob URL — Electron will catch this in setWindowOpenHandler
-      // and open it in a PDF popup. Web browsers open in a new tab.
-      const newWindow = window.open(blobUrl, '_blank')
-
-      if (!newWindow) {
-        message.error('Pop-up blocked. Please allow pop-ups for this site.')
-        URL.revokeObjectURL(blobUrl)
-        return
-      }
-
-      // Clean up blob URL after a delay (let the viewer load first)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
-
+      openBlob(blob, () => message.error('Pop-up blocked. Please allow pop-ups for this site.'))
     } catch (error) {
       hideLoading()
       console.error('Failed to open PDF:', error)
-      // Fallback: open the direct URL
-      window.open(pdfUrl, '_blank')
+      // No fallback to opening the API address directly: a new window cannot
+      // carry the login token, so it would only show "Authentication required".
+      message.error('Could not open the PDF. Please try again.')
     }
   },
 
   downloadPdf: async (pdfPath: string, fileName?: string) => {
     // Dynamic import of message to avoid circular dependency
     const { message } = await import('antd')
-    
+
     const hideLoading = message.loading('Downloading PDF...', 0)
-    
+
     try {
-      const url = `${API_BASE}/api/projects/serve-file?path=${encodeURIComponent(pdfPath)}`
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-          'Accept': 'application/pdf',
-        },
-      })
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      const blob = await response.blob()
-      
+      const blob = await fetchFile('/api/projects/serve-file', { path: pdfPath })
       hideLoading()
       message.success('PDF downloaded', 1.5)
-      
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = fileName || pdfPath.split('/').pop() || pdfPath.split('\\').pop() || 'document.pdf'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+      saveBlob(blob, fileName || pdfPath.split('/').pop() || pdfPath.split('\\').pop() || 'document.pdf')
     } catch (error) {
       hideLoading()
       console.error('Failed to download PDF:', error)
@@ -283,6 +282,9 @@ export const repositoryApi = {
   },
   downloadUrl: (dateKey: string, fileName: string) =>
     `${API_BASE}/api/repository/download/${dateKey}/${encodeURIComponent(fileName)}`,
+  /** Fetches a repository document with the login token. */
+  fetchDocument: (dateKey: string, fileName: string) =>
+    fetchFile(`/api/repository/download/${dateKey}/${encodeURIComponent(fileName)}`),
   deleteDocument: (dateKey: string, docId: string) =>
     api.delete(`/api/repository/documents/${dateKey}/${docId}`),
   restoreDocument: (dateKey: string, docId: string) =>
